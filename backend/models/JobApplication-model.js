@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+// Model to track the job applications extracted from emails, linked to the user. 
 const jobApplicationSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     companyName: { type: String, required: true },
