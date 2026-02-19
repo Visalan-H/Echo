@@ -1,17 +1,31 @@
 const express = require('express');
+const cookieParser = require('cookie-parser');
 const cors = require('cors');
-require('dotenv').config();
+const dotenv = require('dotenv');
+dotenv.config();
+
+const connectDB = require('./config/db');
+const authRoutes = require('./routes/auth');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+
+app.use(cors({
+    origin: process.env.FRONTEND_URL,
+    credentials: true,
+}));
 
 app.use(express.json());
-app.use(cors());
+app.use(cookieParser());
 
+app.use('/api/auth', authRoutes);
 app.get('/', (req, res) => {
-    res.send('Hello, world!');
+    res.json({ status: 'ok' });
 });
 
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+const PORT = process.env.PORT || 3000;
+
+connectDB().then(() => {
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 });
+
+module.exports = app;
