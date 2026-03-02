@@ -58,7 +58,7 @@ async function getNewEmails(user) {
     const gmail = google.gmail({ version: 'v1', auth });
 
 
-    const afterDate = Math.floor(new Date(user.createdAt).getTime() / 1000);
+    const afterDate = Math.floor(new Date(user.lastSyncAt).getTime() / 1000);
 
     const res = await gmail.users.messages.list({
         userId: 'me',

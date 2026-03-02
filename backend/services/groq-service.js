@@ -15,39 +15,41 @@ const MODELS = {
 // Helper function to build the prompt for Groq API
 function buildPrompt(emails) {
     const emailList = emails.map((email, i) => `
-Email ${i + 1} (id: ${email.id}):
-Subject: ${email.subject}
-From: ${email.from}
-Date: ${email.date}
-Body: ${email.body}
-`).join('\n---\n');
+        Email ${i + 1} (id: ${email.id}):
+        Subject: ${email.subject}
+        Snippet: ${email.snippet}
+        Date: ${email.date}
+        Body: ${JSON.stringify(email.payload.body)}
+        `).join('\n---\n');
 
-    return `Analyze these emails and extract job application information. Return ONLY a valid JSON array, no markdown, no extra text.
+        return `Analyze these emails and extract job application information. Return ONLY a valid JSON array, no markdown, no extra text.
 
-For each email return an object with this exact structure:
-{
-  "id": "email id",
-  "isJobRelated": true/false,
-  "companyName": "company name or null",
-  "jobRole": "job title or null",
-  "status": "Applied/Interviewing/Offered/Rejected",
-  "confidence": 1-10
+        For each email return an object with this exact structure:
+        {
+            "id": "email id",
+            "isJobRelated": true/false,
+            "companyName": "company name or null",
+            "jobRole": "job title or null",
+            "status": "Applied/Interviewing/Offered/Rejected",
+            "confidence": 1-10
+        }
+
+        Emails:
+        ${emailList}`;
 }
 
-Emails:
-${emailList}`;
-}
- 
 // Function to call Groq API to parse email content and extract job application info
 async function parseEmailsWithGroq(emails, modelTier = 'primary') {
+    console.log("______: emails", emails);
     const model = MODELS[modelTier];
 
     if (!model) {
         throw new Error(`Invalid model tier: "${modelTier}". Must be primary, secondary, or tertiary.`);
     }
- 
+
     // Log the model being used for debugging purposes
     console.log(`[Groq] Using model: ${model}`);
+    console.log("This is the prompt: 😈😈😈",buildPrompt(emails));
 
     const response = await groq.chat.completions.create({
         model,

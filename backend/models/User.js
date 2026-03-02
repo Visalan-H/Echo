@@ -7,8 +7,7 @@ const userSchema = new mongoose.Schema({
     avatarUrl: { type: String },
     accessToken: { type: String },
     refreshToken: { type: String },
-    lastSyncAt: { type: Date },
-    gmailSyncStatus: { type: String, enum: ['pending', 'syncing', 'completed', 'failed'], default: 'pending' },
+    lastSyncAt: { type: Date, default: Date.now},
     emailSyncErrorMessage: { type: String },
 }, { timestamps: true });
 
