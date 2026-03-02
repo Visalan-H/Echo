@@ -7,7 +7,7 @@ dotenv.config();
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/auth');
 const jobApplicationsRoutes = require('./routes/jobApplication-route');
-const cronRoutes = require('./routes/emailSync-route');
+const gmailRoutes = require('./routes/emailSync-route');
 
 const app = express();
 
@@ -28,7 +28,7 @@ app.use((req, res, next) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api', jobApplicationsRoutes);
-app.use('/api/cron', cronRoutes);
+app.use('/api/gmail', gmailRoutes);
 
 app.get('/', (req, res) => {
     res.json({ status: 'ok' });

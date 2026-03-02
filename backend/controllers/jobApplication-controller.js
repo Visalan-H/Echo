@@ -13,14 +13,14 @@ async function createJobApplication(req, res) {
             notes,
         });
 
-        res.status(201).json({
+        return res.status(201).json({
             success: true,
             message: 'Job application created successfully',
             data: jobApplication
         });
     } catch (error) {
         console.error('Create job application error:', error);
-        res.status(500).json({ error: 'Failed to create job application' });
+        return res.status(500).json({ error: 'Failed to create job application' });
     }
 }
 
@@ -40,14 +40,14 @@ async function getJobApplications(req, res) {
 
         const applications = await JobApplication.find(query).sort({ applicationDate: -1 });
 
-        res.json({
+        return res.json({
             success: true,
             message: 'Job applications fetched successfully',
             data: applications
         });
     } catch (error) {
         console.error('Get job applications error:', error);
-        res.status(500).json({ 
+        return res.status(500).json({ 
             success: false,
             error: 'Failed to fetch job applications' 
         });
@@ -72,14 +72,14 @@ async function updateJobApplication(req, res) {
         Object.assign(jobApplication, updates);
         await jobApplication.save();
 
-        res.json({
+        return res.json({
             success: true,
             message: 'Job application updated successfully',
             data: jobApplication
         });
     } catch (error) {
         console.error('Update job application error:', error);
-        res.status(500).json({ 
+         return res.status(500).json({ 
             success: false,
             error: 'Failed to update job application' 
         });
@@ -102,13 +102,13 @@ async function deleteJobApplication(req, res) {
 
         await JobApplication.deleteOne({ _id: id });
 
-        res.json({
+        return res.json({
             success: true,
             message: 'Job application deleted successfully' 
         });
     } catch (error) {
         console.error('Delete job application error:', error);
-        res.status(500).json({ 
+        return res.status(500).json({ 
             success: false, 
             error: 'Failed to delete job application' 
         });
