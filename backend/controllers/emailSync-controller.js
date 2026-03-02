@@ -7,16 +7,22 @@ const { parseEmailsWithGroq } = require('../services/groq-service');
 async function syncEmails(req, res) {
     try {
 
-        const userId = req.user ? req.user._id : null;
+        const userId = req.user._id;
 
         const user = await User.findById(userId);
 
-        console.log("❌❌❌",user.lastSyncAt);
         // Get the new emails and parse it using groq.
-        const emails = await getNewEmails(user);
+        const newEmails = await getNewEmails(user);
+        const emails = newEmails.map(getEmailHeader);
+
+        console.log("New emails fetched: ", emails);
         const parsed = await parseEmailsWithGroq(emails);
         console.log("Returned value from the groq service:::: ", parsed);
-        
+
+        // update the last sync time for the user
+        user.lastSyncAt = new Date();
+        await user.save();
+
         res.json({
             message: 'Email sync completed',
             parsedEmails: parsed,

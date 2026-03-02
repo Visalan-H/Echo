@@ -58,8 +58,9 @@ async function getNewEmails(user) {
     const gmail = google.gmail({ version: 'v1', auth });
 
 
-    const afterDate = Math.floor(new Date(user.lastSyncAt).getTime() / 1000);
-
+    const since = user.lastSyncAt || user.createdAt;
+    const afterDate = Math.floor(new Date(since).getTime() / 1000);
+    
     const res = await gmail.users.messages.list({
         userId: 'me',
         q: `after:${afterDate}`,
@@ -108,7 +109,7 @@ function getEmailHeader(email) {
             subject,
             from,
             date,
-            body: body.substring(0, 5000), // Limit to 5000 chars for API
+            body: body.substring(0, 800), // Limit to 800 chars for API
         };
     } catch (error) {
         console.error('Error extracting email header:', error.message);

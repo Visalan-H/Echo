@@ -6,23 +6,24 @@ if (!process.env.GROQ_API_KEY) {
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-const MODELS = {
-    primary: process.env.GROQ_MODEL_PRIMARY || 'meta-llama/llama-4-scout-17b-16e-instruct',
-    secondary: process.env.GROQ_MODEL_SECONDARY || 'groq/compound-mini',
-    tertiary: process.env.GROQ_MODEL_TERTIARY || 'moonshotai/kimi-k2-instruct',
+const MODELS = {                                             // status,      speed,     TPM (Ratelimit),  Notes
+    primary: 'llama-3.3-70b-versatile',                      // production,  280 t/s,   300K TPM          Most reliable JSON.
+    secondary: 'meta-llama/llama-4-scout-17b-16e-instruct',  // preview,     750 t/s,   300K TPM          Preview model, might be killed without notice.
+    tertiary: 'openai/gpt-oss-20b',                          // production,  1000 t/s,  250K TPM          Fastest production model.
+    fallback: 'llama-3.1-8b-instant',                        // production,  560 t/s,   last resort       Cheapest, Not very smart.
 };
 
 // Helper function to build the prompt for Groq API
 function buildPrompt(emails) {
     const emailList = emails.map((email, i) => `
         Email ${i + 1} (id: ${email.id}):
+        From: ${email.from}
         Subject: ${email.subject}
-        Snippet: ${email.snippet}
         Date: ${email.date}
-        Body: ${JSON.stringify(email.payload.body)}
-        `).join('\n---\n');
+Body: ${email.body}
+    `.trim()).join('\n---\n');
 
-        return `Analyze these emails and extract job application information. Return ONLY a valid JSON array, no markdown, no extra text.
+    return `Analyze these emails and extract job application information. Return ONLY a valid JSON array, no markdown, no extra text.
 
         For each email return an object with this exact structure:
         {
@@ -49,7 +50,6 @@ async function parseEmailsWithGroq(emails, modelTier = 'primary') {
 
     // Log the model being used for debugging purposes
     console.log(`[Groq] Using model: ${model}`);
-    console.log("This is the prompt: 😈😈😈",buildPrompt(emails));
 
     const response = await groq.chat.completions.create({
         model,
