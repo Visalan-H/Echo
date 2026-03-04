@@ -58,8 +58,9 @@ async function getNewEmails(user) {
     const gmail = google.gmail({ version: 'v1', auth });
 
 
-    const afterDate = Math.floor(new Date(user.createdAt).getTime() / 1000);
-
+    const since = user.lastSyncAt || user.createdAt;
+    const afterDate = Math.floor(new Date(since).getTime() / 1000);
+    
     const res = await gmail.users.messages.list({
         userId: 'me',
         q: `after:${afterDate}`,
@@ -83,4 +84,43 @@ async function getNewEmails(user) {
     return emails;
 }
 
-module.exports = { generateAuthUrl, exchangeCodeForTokens, getUserProfile, getNewEmails };
+// Extract relevant headers and body content from the email
+function getEmailHeader(email) {
+    try {
+        const headers = email.payload.headers;
+        const subject = headers.find(h => h.name === 'Subject')?.value || '';
+        const from = headers.find(h => h.name === 'From')?.value || '';
+        const date = headers.find(h => h.name === 'Date')?.value || '';
+
+        let body = '';
+        if (email.payload.parts) {
+            // Email has multiple parts, find text/plain or text/html
+            const textPart = email.payload.parts.find(part => part.mimeType === 'text/plain');
+            if (textPart && textPart.body.data) {
+                body = Buffer.from(textPart.body.data, 'base64').toString('utf-8');
+            }
+        } else if (email.payload.body && email.payload.body.data) {
+            // Email is simple text
+            body = Buffer.from(email.payload.body.data, 'base64').toString('utf-8');
+        }
+
+        return {
+            id: email.id,
+            subject,
+            from,
+            date,
+            body: body.substring(0, 800), // Limit to 800 chars for API
+        };
+    } catch (error) {
+        console.error('Error extracting email header:', error.message);
+        return {
+            id: email.id,
+            subject: '',
+            from: '',
+            date: '',
+            body: '',
+        };
+    }
+}
+
+module.exports = { generateAuthUrl, exchangeCodeForTokens, getUserProfile, getNewEmails, getEmailHeader };
