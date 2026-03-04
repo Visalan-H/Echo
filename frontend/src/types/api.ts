@@ -18,6 +18,19 @@ export type JobApplication = {
   confidence?: number;
 };
 
+export type JobApplicationMutationPayload = {
+  companyName: string;
+  jobRole: string;
+  status: JobStatus;
+  notes?: string;
+};
+
+export type JobApplicationMutationResponse = {
+  success: boolean;
+  message: string;
+  data: JobApplication;
+};
+
 export type JobApplicationsResponse = {
   success: boolean;
   message: string;
