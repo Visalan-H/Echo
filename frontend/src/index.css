@@ -1,0 +1,72 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Manrope:wght@200..800&display=swap");
+@import "tailwindcss";
+
+:root {
+  --base: #fafafa;
+  --surface: #ffffff;
+  --border: #e5e5e5;
+  --primary: #111111;
+  --muted: #737373;
+  --accent: #2563eb; /* Cobalt Blue */
+}
+
+.dark {
+  --base: #0c0c0c;
+  --surface: #141414;
+  --border: #1f1f1f;
+  --primary: #ededed;
+  --muted: #a3a3a3;
+  --accent: #3b82f6; /* Lighter Cobalt Blue */
+}
+
+@theme {
+  --color-base: var(--base);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+
+  --font-sans: "Manrope", sans-serif;
+  --font-serif: "Fraunces", serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  --ease-custom: cubic-bezier(0, 0, 0.2, 1);
+  --duration-short: 150ms;
+  --duration-normal: 200ms;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-base);
+  color: var(--color-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* Remove default focus outlines and provide custom subtle one if needed */
+*:focus-visible {
+  outline: 1px solid var(--color-border);
+  outline-offset: 2px;
+}
+
+/* Base structural rules */
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
