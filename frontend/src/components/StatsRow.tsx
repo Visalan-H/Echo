@@ -59,10 +59,10 @@ export default function StatsRow({ data }: StatsRowProps) {
       {stats.map((stat) => (
         <div 
           key={stat.label}
-          className="p-5 border border-[var(--color-border)] bg-[var(--color-surface)] flex flex-col"
+          className="p-5 border border-border bg-surface flex flex-col"
         >
-          <span className="text-xs uppercase tracking-wider font-mono text-[var(--color-muted)] mb-3">{stat.label}</span>
-          <div className="text-3xl font-semibold tracking-tight text-[var(--color-primary)]">
+          <span className="text-sm uppercase tracking-wider font-mono text-muted mb-3">{stat.label}</span>
+          <div className="text-3xl font-semibold tracking-tight text-accent">
             <CountUp target={stat.value} />
           </div>
         </div>

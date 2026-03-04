@@ -39,17 +39,17 @@ export default function Landing() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-base)] text-[var(--color-primary)] flex flex-col items-center justify-center p-6 selection:bg-[var(--color-primary)] selection:text-[var(--color-base)]">
+    <div className="min-h-screen bg-base text-primary flex flex-col items-center justify-center p-6 selection:bg-primary selection:text-base">
       
-      <div className="w-[100%] max-w-[1000px] flex flex-col justify-center gap-16 md:gap-24">
+      <div className="w-full max-w-250 flex flex-col justify-center gap-16 md:gap-24">
         
         {/* Main Presentation Content */}
-        <header className="flex flex-col gap-6 md:gap-8 max-w-[650px]">
+        <header className="flex flex-col gap-6 md:gap-8 max-w-163">
           {(errorMessage || authError) && (
              <motion.div 
                initial={{ opacity: 0 }}
                animate={{ opacity: 1 }}
-               className="p-4 border border-[var(--color-border)] bg-[var(--color-surface)] text-red-500 font-sans text-sm tracking-tight mb-4"
+               className="p-4 border border-border bg-surface text-red-500 font-sans text-sm tracking-tight mb-4"
              >
                {errorMessage ? decodeURIComponent(errorMessage) : authError}
              </motion.div>
@@ -59,10 +59,10 @@ export default function Landing() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            className="flex items-center gap-3 text-[var(--color-muted)]"
+            className="flex items-center gap-3 text-muted"
           >
-            <div className="w-6 h-6 border border-[var(--color-border)] flex items-center justify-center bg-[var(--color-surface)]">
-              <div className="w-2 h-2 bg-[var(--color-accent)]" />
+            <div className="w-6 h-6 border border-border flex items-center justify-center bg-surface">
+              <div className="w-2 h-2 bg-accent" />
             </div>
             <span className="font-mono text-xs uppercase tracking-widest">Echo Search</span>
           </motion.div>
@@ -71,7 +71,7 @@ export default function Landing() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.05 }}
-            className="text-5xl md:text-7xl font-sans font-medium tracking-tight text-[var(--color-primary)]"
+            className="text-5xl md:text-7xl font-sans font-medium tracking-tight text-primary"
           >
             Your pipeline, automated.
           </motion.h1>
@@ -80,7 +80,7 @@ export default function Landing() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.1 }}
-            className="text-lg md:text-xl text-[var(--color-muted)] font-sans leading-relaxed tracking-tight"
+            className="text-lg md:text-xl text-muted font-sans leading-relaxed tracking-tight"
           >
             Echo securely scans your inbox and maintains a real-time ledger of your job search. Track applications effortlessly.
           </motion.p>
@@ -94,7 +94,7 @@ export default function Landing() {
             <button
               onClick={loginWithGoogle}
               disabled={isCheckingSession}
-              className="group flex items-center gap-4 bg-[var(--color-primary)] text-[var(--color-base)] hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed px-8 py-4 transition-opacity duration-200 w-fit"
+              className="group flex items-center gap-4 bg-primary text-base hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed px-8 py-4 transition-opacity duration-200 w-fit"
             >
               <span className="font-sans font-medium text-[15px] tracking-wide">
                 {isCheckingSession ? "Authenticating..." : "Continue with Google"}
@@ -109,16 +109,16 @@ export default function Landing() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-10 border-t border-[var(--color-border)]"
+          className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-10 border-t border-border"
         >
           {featureCards.map((card) => (
             <div key={card.title} className="flex flex-col gap-4">
-              <div className="w-10 h-10 border border-[var(--color-border)] bg-[var(--color-surface)] flex items-center justify-center text-[var(--color-primary)]">
+              <div className="w-10 h-10 border border-border bg-surface flex items-center justify-center text-primary">
                 {card.icon}
               </div>
               <div>
-                <h3 className="font-sans font-medium text-lg mb-2 text-[var(--color-primary)]">{card.title}</h3>
-                <p className="text-[var(--color-muted)] text-[15px] leading-relaxed tracking-tight">
+                <h3 className="font-sans font-medium text-lg mb-2 text-primary">{card.title}</h3>
+                <p className="text-muted text-[15px] leading-relaxed tracking-tight">
                   {card.description}
                 </p>
               </div>

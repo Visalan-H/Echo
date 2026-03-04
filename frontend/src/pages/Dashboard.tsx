@@ -1,182 +1,210 @@
-import { useEffect, useReducer } from "react";
-import api from "../utils/api";
-import { getApiErrorMessage } from "../utils/api";
-import { LazyMotion, domAnimation, m } from "framer-motion";
+import { useCallback, useEffect, useState } from "react";
+import { m } from "framer-motion";
+import api, { getApiErrorMessage } from "../utils/api";
 import StatsRow from "../components/StatsRow";
 import JobTable from "../components/JobTable";
 import SyncButton from "../components/SyncButton";
 import Navbar from "../components/Navbar";
 import type {
+  DeleteJobResponse,
   JobApplication,
   JobApplicationMutationPayload,
   JobApplicationMutationResponse,
   JobApplicationsResponse,
   SyncResponse,
 } from "../types/api";
-import { useCallback } from "react";
 
-type DeleteJobResponse = {
-  success: boolean;
-  message: string;
-};
+function DashboardSkeleton() {
+  return (
+    <>
+      <Navbar />
+      <main className="flex-1 w-full px-4 sm:px-6 md:px-10 xl:px-16 py-6 sm:py-8">
+        <div className="flex flex-col gap-8 w-full">
+          {/* Header */}
+          <div className="flex flex-row items-end justify-between border-b border-border pb-5 mt-4 gap-3">
+            <div className="flex flex-col gap-2.5">
+              <div className="h-7 w-20 bg-border animate-pulse" />
+              <div className="h-2.5 w-36 bg-border animate-pulse" />
+            </div>
+            <div className="h-9 w-28 bg-border animate-pulse shrink-0" />
+          </div>
 
-type DashboardState = {
-  jobs: JobApplication[];
-  loading: boolean;
-  error: string | null;
-  notice: string | null;
-};
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={`stat-${i}`} className="p-5 border border-border bg-surface flex flex-col gap-3">
+                <div className="h-2 w-24 bg-border animate-pulse" />
+                <div className="h-7 w-10 bg-border animate-pulse" />
+              </div>
+            ))}
+          </div>
 
-type DashboardAction =
-  | { type: "load_success"; jobs: JobApplication[] }
-  | { type: "load_error"; error: string }
-  | { type: "set_jobs"; jobs: JobApplication[] }
-  | { type: "set_error"; error: string | null }
-  | { type: "set_notice"; notice: string | null };
-
-const initialState: DashboardState = {
-  jobs: [],
-  loading: true,
-  error: null,
-  notice: null,
-};
-
-function dashboardReducer(state: DashboardState, action: DashboardAction): DashboardState {
-  switch (action.type) {
-    case "load_success":
-      return { ...state, jobs: action.jobs, error: null, loading: false };
-    case "load_error":
-      return { ...state, error: action.error, loading: false };
-    case "set_jobs":
-      return { ...state, jobs: action.jobs };
-    case "set_error":
-      return { ...state, error: action.error };
-    case "set_notice":
-      return { ...state, notice: action.notice };
-    default:
-      return state;
-  }
+          {/* Job list */}
+          <div className="flex flex-col gap-4">
+            <div className="h-2.5 w-32 bg-border animate-pulse" />
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-10 bg-surface border border-border animate-pulse" />
+                <div className="h-10 w-16 bg-border animate-pulse shrink-0" />
+              </div>
+              <div className="flex gap-2 overflow-hidden">
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <div key={`pill-${i}`} className="h-9 w-20 shrink-0 bg-border animate-pulse" />
+                ))}
+              </div>
+            </div>
+            <div className="border border-border bg-surface">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div key={`row-${i}`} className="p-4 border-b border-border last:border-b-0 flex flex-col gap-2.5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-col gap-2 flex-1">
+                      <div className="h-4 w-28 bg-border animate-pulse" />
+                      <div className="h-2.5 w-20 bg-border animate-pulse" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-3 w-14 bg-border animate-pulse" />
+                      <div className="h-3 w-16 bg-border animate-pulse" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </main>
+    </>
+  );
 }
 
 export default function Dashboard() {
-  const [state, dispatch] = useReducer(dashboardReducer, initialState);
+  const [jobs, setJobs] = useState<JobApplication[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
-  const fetchJobs = useCallback(() => {
-    return api.get<JobApplicationsResponse>("/api/job-applications").then((jobsRes) => {
-      dispatch({ type: "set_jobs", jobs: jobsRes.data.data ?? [] });
-    });
+  // Auto-dismiss notices after 5 seconds
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(null), 5000);
+    return () => clearTimeout(timer);
+  }, [notice]);
+
+  const fetchJobs = useCallback(async () => {
+    const { data } = await api.get<JobApplicationsResponse>("/api/job-applications");
+    setJobs(data.data ?? []);
+    setError(null);
   }, []);
 
+  // Initial load — inline to avoid react-hooks/set-state-in-effect
   useEffect(() => {
     let active = true;
-
-    void api.get<JobApplicationsResponse>("/api/job-applications")
-      .then((jobsRes) => {
-        if (!active) {
-          return;
+    api.get<JobApplicationsResponse>("/api/job-applications")
+      .then(({ data }) => {
+        if (active) {
+          setJobs(data.data ?? []);
+          setError(null);
+          setLoading(false);
         }
-        dispatch({ type: "load_success", jobs: jobsRes.data.data ?? [] });
       })
-      .catch((errorResponse) => {
-        if (!active) {
-          return;
+      .catch((err) => {
+        if (active) {
+          setError(getApiErrorMessage(err, "Failed to load dashboard data."));
+          setLoading(false);
         }
-        dispatch({
-          type: "load_error",
-          error: getApiErrorMessage(errorResponse, "Failed to load dashboard data."),
-        });
       });
-
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, []);
 
-  const handleSyncComplete = useCallback((syncData: SyncResponse) => {
-    dispatch({ type: "set_notice", notice: syncData.message });
-    return fetchJobs().catch((errorResponse) => {
-      dispatch({
-        type: "set_error",
-        error: getApiErrorMessage(errorResponse, "Sync succeeded but reloading jobs failed."),
-      });
-    });
-  }, [fetchJobs]);
+  const handleSyncComplete = useCallback(
+    async (syncData: SyncResponse) => {
+      setNotice(syncData.message);
+      try {
+        await fetchJobs();
+      } catch (err) {
+        setError(getApiErrorMessage(err, "Sync succeeded but reloading jobs failed."));
+      }
+    },
+    [fetchJobs],
+  );
 
-  const handleCreateJob = useCallback(async (payload: JobApplicationMutationPayload) => {
-    dispatch({ type: "set_error", error: null });
-    const { data } = await api.post<JobApplicationMutationResponse>("/api/job-applications", payload);
-    dispatch({ type: "set_notice", notice: data.message ?? "Job application created successfully." });
-    await fetchJobs();
-  }, [fetchJobs]);
+  const handleCreateJob = useCallback(
+    async (payload: JobApplicationMutationPayload) => {
+      setError(null);
+      const { data } = await api.post<JobApplicationMutationResponse>("/api/job-applications", payload);
+      setNotice(data.message ?? "Job application created successfully.");
+      await fetchJobs();
+    },
+    [fetchJobs],
+  );
 
-  const handleUpdateJob = useCallback(async (jobId: string, payload: JobApplicationMutationPayload) => {
-    dispatch({ type: "set_error", error: null });
-    const { data } = await api.put<JobApplicationMutationResponse>(`/api/job-applications/${jobId}`, payload);
-    dispatch({ type: "set_notice", notice: data.message ?? "Job application updated successfully." });
-    await fetchJobs();
-  }, [fetchJobs]);
+  const handleUpdateJob = useCallback(
+    async (jobId: string, payload: JobApplicationMutationPayload) => {
+      setError(null);
+      const { data } = await api.put<JobApplicationMutationResponse>(`/api/job-applications/${jobId}`, payload);
+      setNotice(data.message ?? "Job application updated successfully.");
+      await fetchJobs();
+    },
+    [fetchJobs],
+  );
 
-  const handleDeleteJob = useCallback(async (jobId: string) => {
-    dispatch({ type: "set_error", error: null });
-    const { data } = await api.delete<DeleteJobResponse>(`/api/job-applications/${jobId}`);
-    dispatch({ type: "set_notice", notice: data.message ?? "Job application deleted successfully." });
-    await fetchJobs();
-  }, [fetchJobs]);
+  const handleDeleteJob = useCallback(
+    async (jobId: string) => {
+      setError(null);
+      const { data } = await api.delete<DeleteJobResponse>(`/api/job-applications/${jobId}`);
+      setNotice(data.message ?? "Job application deleted successfully.");
+      await fetchJobs();
+    },
+    [fetchJobs],
+  );
 
-  if (state.loading) {
-    return (
-      <div className="w-full h-screen flex justify-center items-center">
-        <div className="w-4 h-4 border-2 border-[var(--color-border)] border-t-[var(--color-primary)] rounded-full animate-spin"></div>
-      </div>
-    );
+  if (loading) {
+    return <DashboardSkeleton />;
   }
 
   return (
     <>
       <Navbar />
-      <main className="flex-1 w-full px-6 md:px-10 xl:px-16 py-8">
-        <LazyMotion features={domAnimation}>
+      <main className="flex-1 w-full px-4 sm:px-6 md:px-10 xl:px-16 py-6 sm:py-8">
           <m.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="flex flex-col gap-8 w-full"
-          >
-            {state.error ? (
-              <div className="border border-red-900 bg-red-950/30 px-4 py-3 text-sm text-red-300">
-                {state.error}
-              </div>
-            ) : null}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          className="flex flex-col gap-8 w-full"
+        >
+          {error ? (
+            <div className="border border-red-300 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300 px-4 py-3 text-sm">{error}</div>
+          ) : null}
 
-            {state.notice ? (
-              <div className="border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm text-[var(--color-muted)]">
-                {state.notice}
-              </div>
-            ) : null}
-
-            <div className="flex flex-row items-end justify-between border-b border-[var(--color-border)] pb-5 mt-4 gap-3">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-sans font-bold mb-1 tracking-tight text-[var(--color-primary)]">Pipeline</h1>
-                <p className="text-[var(--color-muted)] text-xs font-mono uppercase tracking-widest inline-block mt-1">
-                  {state.jobs.length} Active Applications
-                </p>
-              </div>
-              <SyncButton onSyncComplete={handleSyncComplete} />
+          {notice ? (
+            <div className="border border-border bg-surface px-4 py-3 text-sm text-muted">
+              {notice}
             </div>
+          ) : null}
 
-            <StatsRow data={state.jobs} />
-
-            <div className="flex flex-col gap-4">
-              <h2 className="text-xs font-mono uppercase tracking-widest text-[var(--color-muted)]">Recent Activity</h2>
-              <JobTable
-                jobs={state.jobs}
-                onCreateJob={handleCreateJob}
-                onUpdateJob={handleUpdateJob}
-                onDeleteJob={handleDeleteJob}
-              />
+          <div className="flex flex-row items-end justify-between border-b border-border pb-5 mt-4 gap-3">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-sans font-bold mb-1 tracking-tight text-primary">
+                Pipeline
+              </h1>
+              <p className="text-muted text-xs font-mono uppercase tracking-widest inline-block mt-1">
+                {jobs.length} Active Applications
+              </p>
             </div>
-          </m.div>
-        </LazyMotion>
+            <SyncButton onSyncComplete={handleSyncComplete} />
+          </div>
+
+          <StatsRow data={jobs} />
+
+          <div className="flex flex-col gap-4">
+            <h2 className="text-xs font-mono uppercase tracking-widest text-muted">Recent Activity</h2>
+            <JobTable
+              jobs={jobs}
+              onCreateJob={handleCreateJob}
+              onUpdateJob={handleUpdateJob}
+              onDeleteJob={handleDeleteJob}
+            />
+          </div>
+        </m.div>
       </main>
     </>
   );

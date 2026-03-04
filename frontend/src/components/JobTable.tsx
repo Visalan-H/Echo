@@ -1,5 +1,6 @@
-import { LazyMotion, domAnimation, m } from "framer-motion";
-import { useMemo, useReducer, type FormEvent } from "react";
+import { m } from "framer-motion";
+import { ChevronUp, ChevronDown, ChevronsUpDown, Search, X } from "lucide-react";
+import { useMemo, useState, type FormEvent } from "react";
 import StatusBadge from "./StatusBadge";
 import EmptyState from "./EmptyState";
 import type {
@@ -18,35 +19,13 @@ type JobTableProps = {
 
 type SortField = "companyName" | "jobRole" | "status" | "applicationDate";
 type SortDirection = "asc" | "desc";
+
 type JobFormState = {
   companyName: string;
   jobRole: string;
   status: JobStatus;
   notes: string;
 };
-
-type TableState = {
-  statusFilter: string;
-  sortField: SortField;
-  sortDirection: SortDirection;
-  isFormOpen: boolean;
-  editingJobId: string | null;
-  formState: JobFormState;
-  formError: string | null;
-  isSubmitting: boolean;
-  deletingJobId: string | null;
-};
-
-type TableAction =
-  | { type: "set_status_filter"; value: string }
-  | { type: "toggle_sort"; field: SortField }
-  | { type: "open_add_form" }
-  | { type: "open_edit_form"; job: JobApplication }
-  | { type: "close_form" }
-  | { type: "set_form_field"; field: keyof JobFormState; value: string }
-  | { type: "set_form_error"; value: string | null }
-  | { type: "set_submitting"; value: boolean }
-  | { type: "set_deleting_job_id"; value: string | null };
 
 const knownStatuses: JobStatus[] = ["Applied", "Interviewing", "Offered", "Rejected"];
 
@@ -65,12 +44,7 @@ function formatDate(dateString: string): string {
 }
 
 function getDefaultFormState(): JobFormState {
-  return {
-    companyName: "",
-    jobRole: "",
-    status: "Applied",
-    notes: "",
-  };
+  return { companyName: "", jobRole: "", status: "Applied", notes: "" };
 }
 
 function normalizeStatus(status: string): JobStatus {
@@ -80,82 +54,9 @@ function normalizeStatus(status: string): JobStatus {
   return "Applied";
 }
 
-const initialState: TableState = {
-  statusFilter: "All",
-  sortField: "applicationDate",
-  sortDirection: "desc",
-  isFormOpen: false,
-  editingJobId: null,
-  formState: getDefaultFormState(),
-  formError: null,
-  isSubmitting: false,
-  deletingJobId: null,
-};
-
-function tableReducer(state: TableState, action: TableAction): TableState {
-  switch (action.type) {
-    case "set_status_filter":
-      return { ...state, statusFilter: action.value };
-    case "toggle_sort":
-      if (state.sortField === action.field) {
-        return {
-          ...state,
-          sortDirection: state.sortDirection === "asc" ? "desc" : "asc",
-        };
-      }
-      return {
-        ...state,
-        sortField: action.field,
-        sortDirection: action.field === "applicationDate" ? "desc" : "asc",
-      };
-    case "open_add_form":
-      return {
-        ...state,
-        isFormOpen: true,
-        editingJobId: null,
-        formState: getDefaultFormState(),
-        formError: null,
-      };
-    case "open_edit_form":
-      return {
-        ...state,
-        isFormOpen: true,
-        editingJobId: action.job._id,
-        formState: {
-          companyName: action.job.companyName,
-          jobRole: action.job.jobRole,
-          status: normalizeStatus(action.job.status),
-          notes: action.job.notes ?? "",
-        },
-        formError: null,
-      };
-    case "close_form":
-      return {
-        ...state,
-        isFormOpen: false,
-        editingJobId: null,
-        formState: getDefaultFormState(),
-        formError: null,
-      };
-    case "set_form_field":
-      return {
-        ...state,
-        formState: {
-          ...state.formState,
-          [action.field]:
-            action.field === "status" ? normalizeStatus(action.value) : action.value,
-        },
-      };
-    case "set_form_error":
-      return { ...state, formError: action.value };
-    case "set_submitting":
-      return { ...state, isSubmitting: action.value };
-    case "set_deleting_job_id":
-      return { ...state, deletingJobId: action.value };
-    default:
-      return state;
-  }
-}
+// ---------------------------------------------------------------------------
+// Sub-components
+// ---------------------------------------------------------------------------
 
 type StatusFilterPillsProps = {
   options: string[];
@@ -165,7 +66,7 @@ type StatusFilterPillsProps = {
 
 function StatusFilterPills({ options, activeStatus, onChange }: StatusFilterPillsProps) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-0.5">
       {options.map((status) => {
         const isActive = activeStatus === status;
         return (
@@ -173,10 +74,10 @@ function StatusFilterPills({ options, activeStatus, onChange }: StatusFilterPill
             key={status}
             type="button"
             onClick={() => onChange(status)}
-            className={`px-3 py-1.5 border text-xs font-mono uppercase tracking-widest transition-colors rounded-none ${
+            className={`shrink-0 px-4 py-2.5 border text-xs font-mono uppercase tracking-widest transition-colors rounded-none ${
               isActive
-                ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-base)]"
-                : "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-muted)] hover:text-[var(--color-primary)] hover:border-[var(--color-primary)]"
+                ? "border-primary bg-primary text-base"
+                : "border-border bg-surface text-muted hover:text-primary hover:border-primary"
             }`}
           >
             {status}
@@ -207,8 +108,8 @@ function JobFormPanel({
   onSubmit,
 }: JobFormPanelProps) {
   return (
-    <form onSubmit={onSubmit} className="border border-[var(--color-border)] bg-[var(--color-surface)] p-4 flex flex-col gap-3">
-      <h3 className="text-xs font-mono uppercase tracking-widest text-[var(--color-muted)]">
+    <form onSubmit={onSubmit} className="border border-border bg-surface p-4 flex flex-col gap-3">
+      <h3 className="text-xs font-mono uppercase tracking-widest text-muted">
         {editingJobId ? "Edit Application" : "New Application"}
       </h3>
 
@@ -216,18 +117,17 @@ function JobFormPanel({
         <input
           type="text"
           value={formState.companyName}
-          onChange={(event) => onFieldChange("companyName", event.target.value)}
+          onChange={(e) => onFieldChange("companyName", e.target.value)}
           placeholder="Company Name"
-          className="w-full border border-[var(--color-border)] bg-[var(--color-base)] text-sm px-3 py-2 text-[var(--color-primary)] placeholder:text-[var(--color-muted)] focus:outline-none focus:border-[var(--color-accent)] transition-colors"
+          className="w-full border border-border bg-base text-[16px] px-3 py-2.5 text-primary placeholder:text-muted focus:outline-none focus:border-accent transition-colors"
           required
         />
-
         <input
           type="text"
           value={formState.jobRole}
-          onChange={(event) => onFieldChange("jobRole", event.target.value)}
+          onChange={(e) => onFieldChange("jobRole", e.target.value)}
           placeholder="Role"
-          className="w-full border border-[var(--color-border)] bg-[var(--color-base)] text-sm px-3 py-2 text-[var(--color-primary)] placeholder:text-[var(--color-muted)] focus:outline-none focus:border-[var(--color-accent)] transition-colors"
+          className="w-full border border-border bg-base text-[16px] px-3 py-2.5 text-primary placeholder:text-muted focus:outline-none focus:border-accent transition-colors"
           required
         />
       </div>
@@ -235,29 +135,26 @@ function JobFormPanel({
       <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-3">
         <select
           value={formState.status}
-          onChange={(event) => onFieldChange("status", event.target.value)}
-          className="w-full border border-[var(--color-border)] bg-[var(--color-base)] text-sm px-3 py-2 text-[var(--color-primary)] focus:outline-none focus:border-[var(--color-accent)] transition-colors"
+          onChange={(e) => onFieldChange("status", e.target.value)}
+          className="w-full border border-border bg-base text-[16px] px-3 py-2.5 text-primary focus:outline-none focus:border-accent transition-colors"
         >
-          {knownStatuses.map((status) => (
-            <option key={status} value={status}>
-              {status}
+          {knownStatuses.map((s) => (
+            <option key={s} value={s}>
+              {s}
             </option>
           ))}
         </select>
-
         <input
           type="text"
           value={formState.notes}
-          onChange={(event) => onFieldChange("notes", event.target.value)}
+          onChange={(e) => onFieldChange("notes", e.target.value)}
           placeholder="Notes (optional)"
-          className="w-full border border-[var(--color-border)] bg-[var(--color-base)] text-sm px-3 py-2 text-[var(--color-primary)] placeholder:text-[var(--color-muted)] focus:outline-none focus:border-[var(--color-accent)] transition-colors"
+          className="w-full border border-border bg-base text-[16px] px-3 py-2.5 text-primary placeholder:text-muted focus:outline-none focus:border-accent transition-colors"
         />
       </div>
 
       {formError ? (
-        <div className="border border-red-900 bg-red-950/30 px-3 py-2 text-xs text-red-300">
-          {formError}
-        </div>
+        <div className="border border-red-300 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300 px-3 py-2 text-xs">{formError}</div>
       ) : null}
 
       <div className="flex justify-end gap-2">
@@ -265,14 +162,14 @@ function JobFormPanel({
           type="button"
           onClick={onCancel}
           disabled={isSubmitting}
-          className="px-3 py-1.5 border border-[var(--color-border)] bg-[var(--color-base)] text-xs font-mono uppercase tracking-widest text-[var(--color-muted)] hover:text-[var(--color-primary)] transition-colors disabled:opacity-70 disabled:cursor-not-allowed rounded-none"
+          className="px-3 py-1.5 border border-border bg-base text-xs font-mono uppercase tracking-widest text-muted hover:text-primary transition-colors disabled:opacity-70 disabled:cursor-not-allowed rounded-none"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={isSubmitting}
-          className="px-3 py-1.5 border border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-base)] text-xs font-mono uppercase tracking-widest hover:opacity-90 transition-opacity disabled:opacity-70 disabled:cursor-not-allowed rounded-none"
+          className="px-3 py-1.5 border border-primary bg-primary text-base text-xs font-mono uppercase tracking-widest hover:opacity-90 transition-opacity disabled:opacity-70 disabled:cursor-not-allowed rounded-none"
         >
           {isSubmitting ? "Saving..." : editingJobId ? "Update" : "Create"}
         </button>
@@ -290,25 +187,21 @@ type SortHeaderButtonProps = {
   onClick: (field: SortField) => void;
 };
 
-function SortHeaderButton({
-  label,
-  field,
-  sortField,
-  sortDirection,
-  align = "left",
-  onClick,
-}: SortHeaderButtonProps) {
-  const indicator = sortField !== field ? "><" : sortDirection === "asc" ? "^" : "v";
-  const wrapperClass = align === "right" ? "text-right" : "";
-  const buttonClass = align === "right"
-    ? "inline-flex items-center gap-2 hover:text-[var(--color-primary)] transition-colors justify-end whitespace-nowrap"
-    : "inline-flex items-center gap-2 hover:text-[var(--color-primary)] transition-colors whitespace-nowrap";
+function SortHeaderButton({ label, field, sortField, sortDirection, align = "left", onClick }: SortHeaderButtonProps) {
+  const isActive = sortField === field;
+  const Icon = !isActive ? ChevronsUpDown : sortDirection === "asc" ? ChevronUp : ChevronDown;
+
+  const justifyClass = align === "right" ? "justify-end" : "";
 
   return (
-    <div className={wrapperClass}>
-      <button type="button" onClick={() => onClick(field)} className={buttonClass}>
+    <div className={align === "right" ? "text-right" : ""}>
+      <button
+        type="button"
+        onClick={() => onClick(field)}
+        className={`inline-flex items-center gap-1.5 hover:text-primary transition-colors whitespace-nowrap ${justifyClass}`}
+      >
         <span>{label}</span>
-        <span>{indicator}</span>
+        <Icon className="w-3 h-3" />
       </button>
     </div>
   );
@@ -317,265 +210,461 @@ function SortHeaderButton({
 type JobRowProps = {
   job: JobApplication;
   deletingJobId: string | null;
+  confirmingDeleteId: string | null;
+  editingJobId: string | null;
+  formState: JobFormState;
+  formError: string | null;
+  isSubmitting: boolean;
   onEdit: (job: JobApplication) => void;
   onDelete: (job: JobApplication) => void;
+  onConfirmDelete: (job: JobApplication) => void;
+  onCancelDelete: () => void;
+  onFieldChange: (field: keyof JobFormState, value: string) => void;
+  onCancelEdit: () => void;
+  onSubmitEdit: (event: FormEvent<HTMLFormElement>) => void;
 };
 
-function JobRow({ job, deletingJobId, onEdit, onDelete }: JobRowProps) {
+function JobRow({ job, deletingJobId, confirmingDeleteId, editingJobId, formState, formError, isSubmitting, onEdit, onDelete, onConfirmDelete, onCancelDelete, onFieldChange, onCancelEdit, onSubmitEdit }: JobRowProps) {
+  const isConfirming = confirmingDeleteId === job._id;
+  const isDeleting = deletingJobId === job._id;
+  const isEditing = editingJobId === job._id;
+
   return (
     <m.div
-      key={job._id ?? `${job.companyName}-${job.applicationDate}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
-      className="group relative flex flex-col p-4 gap-3 text-sm border-b border-[var(--color-border)] last:border-b-0 hover:bg-[var(--color-base)] transition-colors duration-[150ms] ease-out lg:grid lg:grid-cols-[2fr_2fr_1fr_1fr_auto] lg:gap-0 lg:items-center"
+      className={`group relative flex flex-col p-4 gap-3 border-b border-border last:border-b-0 transition-colors duration-150 ease-out ${
+        isConfirming
+          ? "bg-rose-50 dark:bg-red-950/10 lg:grid lg:grid-cols-[1fr_auto] lg:items-center lg:gap-6"
+          : isEditing
+          ? "bg-surface"
+          : "hover:bg-base lg:grid lg:grid-cols-[2fr_2fr_1fr_1fr_140px] lg:gap-6 lg:items-center"
+      }`}
     >
-      <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-[var(--color-accent)] opacity-0 group-hover:opacity-100 transition-opacity duration-[150ms] ease-out" />
+      {!isConfirming && !isEditing && (
+        <div className="hidden lg:block absolute left-0 top-0 bottom-0 w-0.5 bg-accent opacity-0 group-hover:opacity-100 transition-opacity duration-150 ease-out" />
+      )}
 
-      <div className="grid grid-cols-[1fr_auto] gap-2 items-start lg:contents">
-        <div
-          className="font-semibold text-base lg:text-sm leading-tight break-words"
-          style={{ color: "var(--primary)" }}
-        >
-          {job.companyName || "Unknown Company"}
-        </div>
-        <div className="lg:hidden text-[var(--color-muted)] font-mono text-xs mt-0.5 whitespace-nowrap">
-          {formatDate(job.applicationDate)}
-        </div>
-      </div>
+      {isEditing ? (
+        /* ── Inline edit form ── */
+        <form onSubmit={onSubmitEdit} className="flex flex-col gap-3 w-full">
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
+            <span className="text-xs font-mono uppercase tracking-widest text-muted">
+              Editing — {job.companyName}
+            </span>
+          </div>
 
-      <div className="text-[var(--color-muted)] break-words pr-4 uppercase tracking-widest font-mono text-xs">
-        {job.jobRole}
-      </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <input
+              type="text"
+              value={formState.companyName}
+              onChange={(e) => onFieldChange("companyName", e.target.value)}
+              placeholder="Company Name"
+              className="w-full border border-border bg-base text-[16px] px-3 py-2.5 text-primary placeholder:text-muted focus:outline-none focus:border-accent transition-colors"
+              required
+            />
+            <input
+              type="text"
+              value={formState.jobRole}
+              onChange={(e) => onFieldChange("jobRole", e.target.value)}
+              placeholder="Role"
+              className="w-full border border-border bg-base text-[16px] px-3 py-2.5 text-primary placeholder:text-muted focus:outline-none focus:border-accent transition-colors"
+              required
+            />
+          </div>
 
-      <div className="mt-1 lg:mt-0">
-        <StatusBadge status={job.status} />
-      </div>
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_2fr] gap-3">
+            <select
+              value={formState.status}
+              onChange={(e) => onFieldChange("status", e.target.value)}
+              className="w-full border border-border bg-base text-[16px] px-3 py-2.5 text-primary focus:outline-none focus:border-accent transition-colors"
+            >
+              {knownStatuses.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <input
+              type="text"
+              value={formState.notes}
+              onChange={(e) => onFieldChange("notes", e.target.value)}
+              placeholder="Notes (optional)"
+              className="w-full border border-border bg-base text-[16px] px-3 py-2.5 text-primary placeholder:text-muted focus:outline-none focus:border-accent transition-colors"
+            />
+          </div>
 
-      <div className="hidden lg:block text-right text-[var(--color-muted)] font-mono text-xs whitespace-nowrap">
-        {formatDate(job.applicationDate)}
-      </div>
+          {formError ? (
+            <div className="border border-red-300 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300 px-3 py-2 text-xs">{formError}</div>
+          ) : null}
 
-      <div className="flex items-center justify-start lg:justify-end gap-2">
-        <button
-          type="button"
-          onClick={() => onEdit(job)}
-          className="px-2.5 py-1 border border-[var(--color-border)] text-[10px] uppercase tracking-widest font-mono text-[var(--color-muted)] hover:text-[var(--color-primary)] hover:border-[var(--color-primary)] transition-colors rounded-none bg-transparent"
-        >
-          Edit
-        </button>
-        <button
-          type="button"
-          onClick={() => onDelete(job)}
-          disabled={deletingJobId === job._id}
-          className="px-2.5 py-1 border border-red-800 text-[10px] uppercase tracking-widest font-mono text-red-400 hover:text-red-300 hover:border-red-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed rounded-none bg-transparent"
-        >
-          {deletingJobId === job._id ? "Deleting..." : "Delete"}
-        </button>
-      </div>
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={onCancelEdit}
+              disabled={isSubmitting}
+              className="px-3 py-1.5 border border-border bg-base text-xs font-mono uppercase tracking-widest text-muted hover:text-primary transition-colors disabled:opacity-70 disabled:cursor-not-allowed rounded-none"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-3 py-1.5 border border-primary bg-primary text-base text-xs font-mono uppercase tracking-widest hover:opacity-90 transition-opacity disabled:opacity-70 disabled:cursor-not-allowed rounded-none"
+            >
+              {isSubmitting ? "Saving..." : "Update"}
+            </button>
+          </div>
+        </form>
+      ) : isConfirming ? (
+        /* ── Confirmation state: full-row prompt ── */
+        <>
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-primary truncate">
+                {job.companyName}
+              </p>
+              <p className="text-xs font-mono text-muted uppercase tracking-widest truncate">
+                {job.jobRole}
+              </p>
+            </div>
+            <span className="hidden sm:block text-xs font-mono uppercase tracking-widest text-red-600 dark:text-red-400/70 whitespace-nowrap ml-1">
+              — remove?
+            </span>
+          </div>
+          <div className="flex items-center gap-2 justify-start lg:justify-end shrink-0">
+            <button
+              type="button"
+              onClick={() => onConfirmDelete(job)}
+              disabled={isDeleting}
+              className="px-5 py-2 border border-red-300 bg-red-50 text-xs font-mono uppercase tracking-widest text-red-700 hover:text-red-900 hover:border-red-400 hover:bg-red-100 dark:border-red-700/60 dark:bg-red-950/30 dark:text-red-400 dark:hover:text-red-300 dark:hover:border-red-500 dark:hover:bg-red-950/50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed rounded-none"
+            >
+              {isDeleting ? "Deleting..." : "Confirm"}
+            </button>
+            <button
+              type="button"
+              onClick={onCancelDelete}
+              disabled={isDeleting}
+              className="px-5 py-2 border border-border text-xs font-mono uppercase tracking-widest text-muted hover:text-primary hover:border-primary transition-colors disabled:opacity-60 rounded-none bg-transparent"
+            >
+              Cancel
+            </button>
+          </div>
+        </>
+      ) : (
+        /* ── Normal state ── */
+        <>
+          <div className="flex justify-between items-start lg:block">
+            <div className="font-semibold text-[16px] leading-tight wrap-break-word text-primary">
+              {job.companyName || "Unknown Company"}
+            </div>
+            <div className="lg:hidden text-muted font-mono text-xs mt-0.5 whitespace-nowrap">
+              {formatDate(job.applicationDate)}
+            </div>
+          </div>
+
+          <div className="text-muted wrap-break-word uppercase tracking-widest font-mono text-xs">
+            {job.jobRole}
+          </div>
+
+          <div className="mt-1 lg:mt-0">
+            <StatusBadge status={job.status} />
+          </div>
+
+          <div className="hidden lg:block text-right text-muted font-mono text-xs whitespace-nowrap">
+            {formatDate(job.applicationDate)}
+          </div>
+
+          <div className="flex items-center justify-start lg:justify-end gap-2 mt-2 lg:mt-0">
+            <button
+              type="button"
+              onClick={() => onEdit(job)}
+              className="flex-1 lg:flex-none text-center px-4 py-2.5 lg:py-1.5 border border-border text-[10px] uppercase tracking-widest font-mono text-muted hover:text-primary hover:border-primary transition-colors rounded-none bg-transparent"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => onDelete(job)}
+              className="flex-1 lg:flex-none text-center px-4 py-2.5 lg:py-1.5 border border-red-900/50 text-[10px] uppercase tracking-widest font-mono text-red-500 hover:text-red-400 hover:border-red-500 transition-colors rounded-none bg-transparent"
+            >
+              Delete
+            </button>
+          </div>
+
+          {job.notes ? (
+            <div className="mt-1 lg:mt-0 lg:col-span-1 lg:col-start-1 lg:-mb-1">
+              <p className="text-sm leading-relaxed text-muted">{job.notes}</p>
+            </div>
+          ) : null}
+        </>
+      )}
     </m.div>
   );
 }
 
-export default function JobTable({ jobs, onCreateJob, onUpdateJob, onDeleteJob }: JobTableProps) {
-  const [state, dispatch] = useReducer(tableReducer, initialState);
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
 
+export default function JobTable({ jobs, onCreateJob, onUpdateJob, onDeleteJob }: JobTableProps) {
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortField, setSortField] = useState<SortField>("applicationDate");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingJobId, setEditingJobId] = useState<string | null>(null);
+  const [formState, setFormState] = useState<JobFormState>(getDefaultFormState);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingJobId, setDeletingJobId] = useState<string | null>(null);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+
+  // Derived data
   const statusOptions = useMemo(() => {
-    const uniqueStatuses = new Set<string>(knownStatuses);
+    const unique = new Set<string>(knownStatuses);
     jobs.forEach((job) => {
-      const normalizedStatus = job.status.trim();
-      if (normalizedStatus) {
-        uniqueStatuses.add(normalizedStatus);
-      }
+      const s = job.status.trim();
+      if (s) unique.add(s);
     });
-    return ["All", ...Array.from(uniqueStatuses)];
+    return ["All", ...Array.from(unique)];
   }, [jobs]);
 
   const filteredAndSortedJobs = useMemo(() => {
-    const filtered = jobs.filter((job) => state.statusFilter === "All" || job.status === state.statusFilter);
-    const sorted = [...filtered].sort((left, right) => {
-      if (state.sortField === "applicationDate") {
-        const leftDate = new Date(left.applicationDate).getTime();
-        const rightDate = new Date(right.applicationDate).getTime();
-        return leftDate - rightDate;
-      }
-      const leftValue = String(left[state.sortField] ?? "").toLowerCase();
-      const rightValue = String(right[state.sortField] ?? "").toLowerCase();
-      return leftValue.localeCompare(rightValue, undefined, { numeric: true, sensitivity: "base" });
+    const q = searchQuery.toLowerCase().trim();
+    const filtered = jobs.filter((job) => {
+      const matchesStatus = statusFilter === "All" || job.status === statusFilter;
+      const matchesSearch =
+        !q ||
+        job.companyName.toLowerCase().includes(q) ||
+        job.jobRole.toLowerCase().includes(q);
+      return matchesStatus && matchesSearch;
     });
-    return state.sortDirection === "asc" ? sorted : sorted.reverse();
-  }, [jobs, state.statusFilter, state.sortDirection, state.sortField]);
+    const sorted = [...filtered].sort((a, b) => {
+      if (sortField === "applicationDate") {
+        return new Date(a.applicationDate).getTime() - new Date(b.applicationDate).getTime();
+      }
+      const aVal = String(a[sortField] ?? "").toLowerCase();
+      const bVal = String(b[sortField] ?? "").toLowerCase();
+      return aVal.localeCompare(bVal, undefined, { numeric: true, sensitivity: "base" });
+    });
+    return sortDirection === "asc" ? sorted : sorted.reverse();
+  }, [jobs, statusFilter, searchQuery, sortDirection, sortField]);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  // Handlers
+  function handleToggleSort(field: SortField) {
+    if (sortField === field) {
+      setSortDirection((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDirection(field === "applicationDate" ? "desc" : "asc");
+    }
+  }
+
+  function openAddForm() {
+    setIsFormOpen(true);
+    setEditingJobId(null);
+    setFormState(getDefaultFormState());
+    setFormError(null);
+  }
+
+  function openEditForm(job: JobApplication) {
+    setIsFormOpen(false);
+    setEditingJobId(job._id);
+    setFormState({
+      companyName: job.companyName,
+      jobRole: job.jobRole,
+      status: normalizeStatus(job.status),
+      notes: job.notes ?? "",
+    });
+    setFormError(null);
+  }
+
+  function closeForm() {
+    setIsFormOpen(false);
+    setEditingJobId(null);
+    setFormState(getDefaultFormState());
+    setFormError(null);
+  }
+
+  function handleFieldChange(field: keyof JobFormState, value: string) {
+    setFormState((prev) => ({
+      ...prev,
+      [field]: field === "status" ? normalizeStatus(value) : value,
+    }));
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const companyName = state.formState.companyName.trim();
-    const jobRole = state.formState.jobRole.trim();
-    const notes = state.formState.notes.trim();
+    const companyName = formState.companyName.trim();
+    const jobRole = formState.jobRole.trim();
+    const notes = formState.notes.trim();
 
     if (companyName.length < 2) {
-      dispatch({ type: "set_form_error", value: "Company name must be at least 2 characters." });
+      setFormError("Company name must be at least 2 characters.");
       return;
     }
     if (jobRole.length < 2) {
-      dispatch({ type: "set_form_error", value: "Role must be at least 2 characters." });
+      setFormError("Role must be at least 2 characters.");
       return;
     }
 
     const payload: JobApplicationMutationPayload = {
       companyName,
       jobRole,
-      status: state.formState.status,
+      status: formState.status,
       notes: notes || undefined,
     };
 
-    dispatch({ type: "set_form_error", value: null });
-    dispatch({ type: "set_submitting", value: true });
+    setFormError(null);
+    setIsSubmitting(true);
 
-    void Promise.resolve()
+    const action = editingJobId ? onUpdateJob(editingJobId, payload) : onCreateJob(payload);
+
+    void Promise.resolve(action)
+      .then(() => closeForm())
+      .catch((err) => setFormError(getApiErrorMessage(err, "Failed to save job application.")))
+      .finally(() => setIsSubmitting(false));
+  }
+
+  function handleDelete(job: JobApplication) {
+    if (!job._id) return;
+
+    setFormError(null);
+    setDeletingJobId(job._id);
+    setConfirmingDeleteId(null);
+
+    const currentEditId = editingJobId;
+
+    void Promise.resolve(onDeleteJob(job._id))
       .then(() => {
-        if (state.editingJobId) {
-          return onUpdateJob(state.editingJobId, payload);
-        }
-        return onCreateJob(payload);
+        if (currentEditId === job._id) closeForm();
       })
-      .then(() => {
-        dispatch({ type: "close_form" });
-      })
-      .catch((errorResponse) => {
-        dispatch({
-          type: "set_form_error",
-          value: getApiErrorMessage(errorResponse, "Failed to save job application."),
-        });
-      })
-      .finally(() => {
-        dispatch({ type: "set_submitting", value: false });
-      });
-  };
-
-  const handleDelete = (job: JobApplication) => {
-    if (!job._id) {
-      return;
-    }
-    const confirmed = window.confirm(`Delete ${job.companyName} - ${job.jobRole}?`);
-    if (!confirmed) {
-      return;
-    }
-
-    dispatch({ type: "set_form_error", value: null });
-    dispatch({ type: "set_deleting_job_id", value: job._id });
-
-    const currentEditingJobId = state.editingJobId;
-    void Promise.resolve()
-      .then(() => onDeleteJob(job._id))
-      .then(() => {
-        if (currentEditingJobId === job._id) {
-          dispatch({ type: "close_form" });
-        }
-      })
-      .catch((errorResponse) => {
-        dispatch({
-          type: "set_form_error",
-          value: getApiErrorMessage(errorResponse, "Failed to delete job application."),
-        });
-      })
-      .finally(() => {
-        dispatch({ type: "set_deleting_job_id", value: null });
-      });
-  };
+      .catch((err) => setFormError(getApiErrorMessage(err, "Failed to delete job application.")))
+      .finally(() => setDeletingJobId(null));
+  }
 
   return (
     <div className="w-full flex flex-col gap-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <StatusFilterPills
-          options={statusOptions}
-          activeStatus={state.statusFilter}
-          onChange={(status) => dispatch({ type: "set_status_filter", value: status })}
-        />
-        <button
-          type="button"
-          onClick={() => dispatch({ type: "open_add_form" })}
-          className="self-start sm:self-auto px-3 py-1.5 border border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-base)] text-xs font-mono uppercase tracking-widest hover:opacity-90 transition-opacity rounded-none"
-        >
-          Add Application
-        </button>
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search companies or roles..."
+              className="w-full border border-border bg-base text-[16px] pl-9 pr-9 py-2.5 text-primary placeholder:text-muted focus:outline-none focus:border-accent transition-colors font-sans"
+            />
+            {searchQuery ? (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center text-muted hover:text-primary transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={openAddForm}
+            className="shrink-0 px-4 py-2.5 border border-primary bg-primary text-base text-xs font-mono uppercase tracking-widest hover:opacity-90 transition-opacity rounded-none"
+          >
+            + Add
+          </button>
+        </div>
+        <StatusFilterPills options={statusOptions} activeStatus={statusFilter} onChange={setStatusFilter} />
       </div>
 
-      {state.isFormOpen ? (
+      {isFormOpen && !editingJobId ? (
         <JobFormPanel
-          editingJobId={state.editingJobId}
-          formState={state.formState}
-          formError={state.formError}
-          isSubmitting={state.isSubmitting}
-          onFieldChange={(field, value) => dispatch({ type: "set_form_field", field, value })}
-          onCancel={() => dispatch({ type: "close_form" })}
+          editingJobId={null}
+          formState={formState}
+          formError={formError}
+          isSubmitting={isSubmitting}
+          onFieldChange={handleFieldChange}
+          onCancel={closeForm}
           onSubmit={handleSubmit}
         />
       ) : null}
 
-      <div className="flex justify-between items-center text-xs uppercase tracking-widest font-mono text-[var(--color-muted)]">
+<div className="flex justify-between items-center text-sm uppercase tracking-widest font-mono text-muted">
         <span>{filteredAndSortedJobs.length} matching records</span>
       </div>
 
       {jobs.length === 0 ? (
         <EmptyState />
       ) : (
-        <div className="w-full text-left border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
-          <div className="hidden lg:grid grid-cols-[2fr_2fr_1fr_1fr_auto] p-4 text-xs uppercase tracking-widest font-mono text-[var(--color-muted)] border-b border-[var(--color-border)]">
+        <div className="w-full text-left border border-border bg-surface overflow-hidden">
+          <div className="hidden lg:grid grid-cols-[2fr_2fr_1fr_1fr_140px] p-4 gap-6 text-xs uppercase tracking-widest font-mono text-muted border-b border-border">
             <SortHeaderButton
               label="Company"
               field="companyName"
-              sortField={state.sortField}
-              sortDirection={state.sortDirection}
-              onClick={(field) => dispatch({ type: "toggle_sort", field })}
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onClick={handleToggleSort}
             />
             <SortHeaderButton
               label="Role"
               field="jobRole"
-              sortField={state.sortField}
-              sortDirection={state.sortDirection}
-              onClick={(field) => dispatch({ type: "toggle_sort", field })}
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onClick={handleToggleSort}
             />
             <SortHeaderButton
               label="Status"
               field="status"
-              sortField={state.sortField}
-              sortDirection={state.sortDirection}
-              onClick={(field) => dispatch({ type: "toggle_sort", field })}
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onClick={handleToggleSort}
             />
             <SortHeaderButton
               label="Date"
               field="applicationDate"
-              sortField={state.sortField}
-              sortDirection={state.sortDirection}
+              sortField={sortField}
+              sortDirection={sortDirection}
               align="right"
-              onClick={(field) => dispatch({ type: "toggle_sort", field })}
+              onClick={handleToggleSort}
             />
-            <div className="text-right">Actions</div>
+            <div className="text-right flex items-center justify-end">Actions</div>
           </div>
 
-          <LazyMotion features={domAnimation}>
-            <div className="flex flex-col">
-              {filteredAndSortedJobs.length === 0 ? (
-                <div className="py-16 px-6 text-center">
-                  <h3 className="font-mono text-xs tracking-widest uppercase mb-3 text-[var(--color-muted)]">No Matches</h3>
-                  <p className="text-[var(--color-primary)] text-lg tracking-tight">
-                    No applications match your current filters.
-                  </p>
-                </div>
-              ) : (
-                filteredAndSortedJobs.map((job) => (
-                  <JobRow
-                    key={job._id ?? `${job.companyName}-${job.applicationDate}`}
-                    job={job}
-                    deletingJobId={state.deletingJobId}
-                    onEdit={(selectedJob) => dispatch({ type: "open_edit_form", job: selectedJob })}
-                    onDelete={handleDelete}
-                  />
-                ))
-              )}
-            </div>
-          </LazyMotion>
+          <div className="flex flex-col">
+            {filteredAndSortedJobs.length === 0 ? (
+              <div className="py-16 px-6 text-center">
+                <h3 className="font-mono text-sm tracking-widest uppercase mb-3 text-muted">
+                  No Matches
+                </h3>
+                <p className="text-primary text-lg tracking-tight">
+                  No applications match your current filters.
+                </p>
+              </div>
+            ) : (
+              filteredAndSortedJobs.map((job) => (
+                <JobRow
+                  key={job._id ?? `${job.companyName}-${job.applicationDate}`}
+                  job={job}
+                  deletingJobId={deletingJobId}
+                  confirmingDeleteId={confirmingDeleteId}
+                  editingJobId={editingJobId}
+                  formState={formState}
+                  formError={formError}
+                  isSubmitting={isSubmitting}
+                  onEdit={openEditForm}
+                  onDelete={(j) => setConfirmingDeleteId(j._id)}
+                  onConfirmDelete={handleDelete}
+                  onCancelDelete={() => setConfirmingDeleteId(null)}
+                  onFieldChange={handleFieldChange}
+                  onCancelEdit={closeForm}
+                  onSubmitEdit={handleSubmit}
+                />
+              ))
+            )}
+          </div>
         </div>
       )}
     </div>

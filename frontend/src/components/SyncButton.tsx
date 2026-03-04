@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { RefreshCw, Check } from "lucide-react";
 import api from "../utils/api";
@@ -13,6 +13,12 @@ export default function SyncButton({ onSyncComplete }: SyncButtonProps) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [justSynced, setJustSynced] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => setError(null), 5000);
+    return () => clearTimeout(timer);
+  }, [error]);
 
   const handleSync = async () => {
     if (isSyncing || justSynced) return;
@@ -39,7 +45,7 @@ export default function SyncButton({ onSyncComplete }: SyncButtonProps) {
       <button
         onClick={handleSync}
         disabled={isSyncing}
-        className="flex items-center justify-center gap-2 h-9 px-4 border border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-border)] disabled:opacity-70 disabled:cursor-not-allowed transition-colors duration-[150ms] ease-out text-sm font-medium whitespace-nowrap"
+        className="flex items-center justify-center gap-2 h-9 px-4 border border-border bg-surface hover:bg-border disabled:opacity-70 disabled:cursor-not-allowed transition-colors duration-150 ease-out text-sm font-medium whitespace-nowrap"
       >
         <div className="w-4 h-4 relative flex items-center justify-center">
           <AnimatePresence mode="wait">
@@ -63,7 +69,7 @@ export default function SyncButton({ onSyncComplete }: SyncButtonProps) {
                   ease: "linear",
                 }}
               >
-                <RefreshCw className="w-4 h-4 text-[var(--color-primary)] opacity-80" />
+                <RefreshCw className="w-4 h-4 text-primary opacity-80" />
               </motion.div>
             )}
           </AnimatePresence>

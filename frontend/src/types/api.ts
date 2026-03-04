@@ -41,3 +41,8 @@ export type SyncResponse = {
   message: string;
   jobApplications?: JobApplication[];
 };
+
+export type DeleteJobResponse = {
+  success: boolean;
+  message: string;
+};

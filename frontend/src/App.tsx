@@ -1,11 +1,15 @@
+import { LazyMotion, domAnimation } from "framer-motion";
 import { Navigate, Route, Routes } from "react-router-dom";
 import Landing from "./pages/Landing";
 import Dashboard from "./pages/Dashboard";
 import RequireAuth from "./components/RequireAuth";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-[var(--color-base)] text-[var(--color-primary)] font-sans antialiased flex flex-col selection:bg-[var(--color-accent)] selection:text-black">
+    <ErrorBoundary>
+    <LazyMotion features={domAnimation}>
+    <div className="min-h-screen bg-base text-primary font-sans antialiased flex flex-col selection:bg-accent selection:text-black">
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route
@@ -19,5 +23,7 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
+    </LazyMotion>
+    </ErrorBoundary>
   );
 }
