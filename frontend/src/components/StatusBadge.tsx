@@ -21,7 +21,7 @@ export default function StatusBadge({ status }: StatusBadgeProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.15, ease: "easeOut" }}
-      className="flex items-center gap-2 text-sm font-medium text-[var(--color-primary)]"
+      className="flex items-center gap-2 text-sm font-medium text-primary"
     >
       <div className={`w-1.5 h-1.5 rounded-full bg-current ${dotColorClass}`} />
       <span>{status}</span>

@@ -1,10 +1,12 @@
 import { LogOut, Sun, Moon } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export default function Navbar() {
   const { isDark, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
+  const nav = useNavigate();
 
   const handleLogout = async () => {
     await logout();
@@ -12,28 +14,26 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="border-b border-[var(--color-border)] bg-[var(--color-base)] transition-colors duration-[150ms]">
-      <div className="w-full px-6 md:px-10 xl:px-16 h-16 flex items-center justify-between">
+    <nav className="border-b border-border bg-base transition-colors duration-150">
+      <div className="w-full px-4 sm:px-6 md:px-10 xl:px-16 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 border-2 border-[var(--color-primary)] rounded-sm flex items-center justify-center">
-            <div className="w-2 h-2 bg-[var(--color-accent)]" />
-          </div>
-          <span className="font-serif text-lg tracking-tight font-medium ml-1">Echo</span>
+          
+          <span className="font-serif text-lg tracking-tight font-medium ml-1 cursor-pointer"  onClick={()=>nav('/')}> Echo</span>
         </div>
         
         <div className="flex items-center gap-4">
           <button
             onClick={toggleTheme}
-            className="w-8 h-8 flex items-center justify-center rounded-full border border-transparent hover:border-[var(--color-border)] hover:bg-[var(--color-surface)] text-[var(--color-muted)] hover:text-[var(--color-primary)] transition-all duration-[150ms] ease-out"
+            className="w-8 h-8 flex items-center justify-center rounded-full border border-transparent hover:border-border hover:bg-surface text-muted hover:text-primary transition-all duration-150 ease-out"
             aria-label="Toggle theme"
           >
             {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
 
-          <div className="w-px h-4 bg-[var(--color-border)]" />
+          <div className="w-px h-4 bg-border" />
 
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full border border-[var(--color-border)] overflow-hidden bg-[var(--color-surface)]">
+            <div className="w-8 h-8 rounded-full border border-border overflow-hidden bg-surface">
               {user?.avatarUrl ? (
                 <img 
                   src={user.avatarUrl} 
@@ -41,20 +41,21 @@ export default function Navbar() {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full bg-[var(--color-border)]" />
+                <div className="w-full h-full bg-border" />
               )}
             </div>
-            <span className="text-sm font-medium">{user?.name || "User"}</span>
+            <span className="hidden sm:inline text-sm font-medium">{user?.name || "User"}</span>
           </div>
           
-          <div className="w-px h-4 bg-[var(--color-border)]" />
+          <div className="hidden sm:block w-px h-4 bg-border" />
           
           <button 
             onClick={handleLogout}
-            className="text-[var(--color-muted)] hover:text-[var(--color-primary)] transition-colors duration-[150ms] ease-out flex items-center gap-2 text-sm font-medium"
+            className="text-muted hover:text-primary transition-colors duration-150 ease-out flex items-center gap-1.5 text-sm font-medium"
+            aria-label="Logout"
           >
             <LogOut className="w-4 h-4" />
-            Logout
+            <span className="hidden sm:inline">Logout</span>
           </button>
         </div>
       </div>

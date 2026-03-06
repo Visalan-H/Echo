@@ -18,6 +18,19 @@ export type JobApplication = {
   confidence?: number;
 };
 
+export type JobApplicationMutationPayload = {
+  companyName: string;
+  jobRole: string;
+  status: JobStatus;
+  notes?: string;
+};
+
+export type JobApplicationMutationResponse = {
+  success: boolean;
+  message: string;
+  data: JobApplication;
+};
+
 export type JobApplicationsResponse = {
   success: boolean;
   message: string;
@@ -27,4 +40,9 @@ export type JobApplicationsResponse = {
 export type SyncResponse = {
   message: string;
   jobApplications?: JobApplication[];
+};
+
+export type DeleteJobResponse = {
+  success: boolean;
+  message: string;
 };

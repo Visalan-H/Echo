@@ -12,7 +12,7 @@ export default function RequireAuth({ children }: RequireAuthProps) {
   if (status === "loading") {
     return (
       <div className="w-full h-screen flex justify-center items-center">
-        <div className="w-4 h-4 border-2 border-[var(--color-border)] border-t-[var(--color-primary)] rounded-full animate-spin" />
+        <div className="w-4 h-4 border-2 border-border border-t-primary rounded-full animate-spin" />
       </div>
     );
   }
