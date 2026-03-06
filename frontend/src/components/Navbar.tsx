@@ -1,10 +1,12 @@
 import { LogOut, Sun, Moon } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export default function Navbar() {
   const { isDark, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
+  const nav = useNavigate();
 
   const handleLogout = async () => {
     await logout();
@@ -15,10 +17,8 @@ export default function Navbar() {
     <nav className="border-b border-border bg-base transition-colors duration-150">
       <div className="w-full px-4 sm:px-6 md:px-10 xl:px-16 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 border-2 border-primary rounded-sm flex items-center justify-center">
-            <div className="w-2 h-2 bg-accent" />
-          </div>
-          <span className="font-serif text-lg tracking-tight font-medium ml-1">Echo</span>
+          
+          <span className="font-serif text-lg tracking-tight font-medium ml-1 cursor-pointer"  onClick={()=>nav('/')}> Echo</span>
         </div>
         
         <div className="flex items-center gap-4">

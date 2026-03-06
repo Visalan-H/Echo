@@ -53,11 +53,16 @@ body {
 }
 
 /* Remove default focus outlines and provide custom subtle one if needed */
-*:focus-visible {
+*:focus-visible:not(input, select, textarea) {
   outline: 1px solid var(--color-border);
   outline-offset: 2px;
 }
 
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+}
 /* Base structural rules */
 #root {
   min-height: 100vh;

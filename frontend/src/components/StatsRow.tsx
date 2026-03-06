@@ -48,7 +48,7 @@ function countByStatus(data: JobApplication[], status: JobStatus): number {
 
 export default function StatsRow({ data }: StatsRowProps) {
   const stats = [
-    { label: "Total Applications", value: data.length },
+    { label: "Total", value: data.length },
     { label: "Interviewing", value: countByStatus(data, "Interviewing") },
     { label: "Offered", value: countByStatus(data, "Offered") },
     { label: "Rejected", value: countByStatus(data, "Rejected") },

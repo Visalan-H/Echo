@@ -15,6 +15,7 @@ type JobTableProps = {
   onCreateJob: (payload: JobApplicationMutationPayload) => Promise<void> | void;
   onUpdateJob: (jobId: string, payload: JobApplicationMutationPayload) => Promise<void> | void;
   onDeleteJob: (jobId: string) => Promise<void> | void;
+  userEmail: string;
 };
 
 type SortField = "companyName" | "jobRole" | "status" | "applicationDate";
@@ -183,32 +184,28 @@ type SortHeaderButtonProps = {
   field: SortField;
   sortField: SortField;
   sortDirection: SortDirection;
-  align?: "left" | "right";
   onClick: (field: SortField) => void;
 };
 
-function SortHeaderButton({ label, field, sortField, sortDirection, align = "left", onClick }: SortHeaderButtonProps) {
+function SortHeaderButton({ label, field, sortField, sortDirection, onClick }: SortHeaderButtonProps) {
   const isActive = sortField === field;
   const Icon = !isActive ? ChevronsUpDown : sortDirection === "asc" ? ChevronUp : ChevronDown;
 
-  const justifyClass = align === "right" ? "justify-end" : "";
-
   return (
-    <div className={align === "right" ? "text-right" : ""}>
-      <button
-        type="button"
-        onClick={() => onClick(field)}
-        className={`inline-flex items-center gap-1.5 hover:text-primary transition-colors whitespace-nowrap ${justifyClass}`}
-      >
-        <span>{label}</span>
-        <Icon className="w-3 h-3" />
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={() => onClick(field)}
+      className="inline-flex items-center gap-1.5 hover:text-primary transition-colors whitespace-nowrap"
+    >
+      <span>{label}</span>
+      <Icon className="w-3 h-3" />
+    </button>
   );
 }
 
 type JobRowProps = {
   job: JobApplication;
+  userEmail: string;
   deletingJobId: string | null;
   confirmingDeleteId: string | null;
   editingJobId: string | null;
@@ -224,7 +221,7 @@ type JobRowProps = {
   onSubmitEdit: (event: FormEvent<HTMLFormElement>) => void;
 };
 
-function JobRow({ job, deletingJobId, confirmingDeleteId, editingJobId, formState, formError, isSubmitting, onEdit, onDelete, onConfirmDelete, onCancelDelete, onFieldChange, onCancelEdit, onSubmitEdit }: JobRowProps) {
+function JobRow({ job, userEmail, deletingJobId, confirmingDeleteId, editingJobId, formState, formError, isSubmitting, onEdit, onDelete, onConfirmDelete, onCancelDelete, onFieldChange, onCancelEdit, onSubmitEdit }: JobRowProps) {
   const isConfirming = confirmingDeleteId === job._id;
   const isDeleting = deletingJobId === job._id;
   const isEditing = editingJobId === job._id;
@@ -239,7 +236,7 @@ function JobRow({ job, deletingJobId, confirmingDeleteId, editingJobId, formStat
           ? "bg-rose-50 dark:bg-red-950/10 lg:grid lg:grid-cols-[1fr_auto] lg:items-center lg:gap-6"
           : isEditing
           ? "bg-surface"
-          : "hover:bg-base lg:grid lg:grid-cols-[2fr_2fr_1fr_1fr_140px] lg:gap-6 lg:items-center"
+          : "hover:bg-base lg:grid lg:grid-cols-[2fr_2fr_1fr_1fr_260px] lg:gap-4 lg:items-center"
       }`}
     >
       {!isConfirming && !isEditing && (
@@ -372,22 +369,34 @@ function JobRow({ job, deletingJobId, confirmingDeleteId, editingJobId, formStat
             <StatusBadge status={job.status} />
           </div>
 
-          <div className="hidden lg:block text-right text-muted font-mono text-xs whitespace-nowrap">
+          <div className="hidden lg:block text-left text-muted font-mono text-xs whitespace-nowrap">
             {formatDate(job.applicationDate)}
           </div>
 
-          <div className="flex items-center justify-start lg:justify-end gap-2 mt-2 lg:mt-0">
+          <div className="flex items-center gap-1.5 mt-2 lg:mt-0">
             <button
               type="button"
               onClick={() => onEdit(job)}
-              className="flex-1 lg:flex-none text-center px-4 py-2.5 lg:py-1.5 border border-border text-[10px] uppercase tracking-widest font-mono text-muted hover:text-primary hover:border-primary transition-colors rounded-none bg-transparent"
+              className="shrink-0 px-3 py-1.5 border border-border text-[10px] uppercase tracking-widest font-mono text-muted hover:text-primary hover:border-primary transition-colors rounded-none bg-transparent"
             >
               Edit
             </button>
+            {job.emailId && (
+              <button
+                type="button"
+                onClick={() => {
+  const url = `https://mail.google.com/mail/u/0/?authuser=${encodeURIComponent(userEmail)}#all/${job.emailId}`;
+                  window.open(url, "_blank");
+                }}
+                className="shrink-0 px-3 py-1.5 border border-border text-[10px] uppercase tracking-widest font-mono text-muted hover:text-primary hover:border-primary transition-colors rounded-none bg-transparent"
+              >
+                View Email
+              </button>
+            )}
             <button
               type="button"
               onClick={() => onDelete(job)}
-              className="flex-1 lg:flex-none text-center px-4 py-2.5 lg:py-1.5 border border-red-900/50 text-[10px] uppercase tracking-widest font-mono text-red-500 hover:text-red-400 hover:border-red-500 transition-colors rounded-none bg-transparent"
+              className="shrink-0 px-3 py-1.5 border border-red-900/50 text-[10px] uppercase tracking-widest font-mono text-red-500 hover:text-red-400 hover:border-red-500 transition-colors rounded-none bg-transparent"
             >
               Delete
             </button>
@@ -408,7 +417,7 @@ function JobRow({ job, deletingJobId, confirmingDeleteId, editingJobId, formStat
 // Main component
 // ---------------------------------------------------------------------------
 
-export default function JobTable({ jobs, onCreateJob, onUpdateJob, onDeleteJob }: JobTableProps) {
+export default function JobTable({ jobs, userEmail, onCreateJob, onUpdateJob, onDeleteJob }: JobTableProps) {
   const [statusFilter, setStatusFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<SortField>("applicationDate");
@@ -549,7 +558,7 @@ export default function JobTable({ jobs, onCreateJob, onUpdateJob, onDeleteJob }
   return (
     <div className="w-full flex flex-col gap-4">
       <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-stretch gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted pointer-events-none" />
             <input
@@ -557,7 +566,7 @@ export default function JobTable({ jobs, onCreateJob, onUpdateJob, onDeleteJob }
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search companies or roles..."
-              className="w-full border border-border bg-base text-[16px] pl-9 pr-9 py-2.5 text-primary placeholder:text-muted focus:outline-none focus:border-accent transition-colors font-sans"
+            className="w-full h-full border border-border bg-base text-[16px] pl-9 pr-9 py-2.5 text-primary placeholder:text-muted focus:outline-none outline-none ring-0 focus:ring-0 focus:border-accent transition-colors font-sans"
             />
             {searchQuery ? (
               <button
@@ -572,7 +581,7 @@ export default function JobTable({ jobs, onCreateJob, onUpdateJob, onDeleteJob }
           <button
             type="button"
             onClick={openAddForm}
-            className="shrink-0 px-4 py-2.5 border border-primary bg-primary text-base text-xs font-mono uppercase tracking-widest hover:opacity-90 transition-opacity rounded-none"
+            className="shrink-0 px-4 border border-primary bg-primary text-base text-xs font-mono uppercase tracking-widest hover:opacity-90 transition-opacity rounded-none"
           >
             + Add
           </button>
@@ -600,7 +609,7 @@ export default function JobTable({ jobs, onCreateJob, onUpdateJob, onDeleteJob }
         <EmptyState />
       ) : (
         <div className="w-full text-left border border-border bg-surface overflow-hidden">
-          <div className="hidden lg:grid grid-cols-[2fr_2fr_1fr_1fr_140px] p-4 gap-6 text-xs uppercase tracking-widest font-mono text-muted border-b border-border">
+          <div className="hidden lg:grid grid-cols-[2fr_2fr_1fr_1fr_260px] px-4 py-3 gap-4 text-xs uppercase tracking-widest font-mono text-muted border-b border-border">
             <SortHeaderButton
               label="Company"
               field="companyName"
@@ -627,10 +636,9 @@ export default function JobTable({ jobs, onCreateJob, onUpdateJob, onDeleteJob }
               field="applicationDate"
               sortField={sortField}
               sortDirection={sortDirection}
-              align="right"
               onClick={handleToggleSort}
             />
-            <div className="text-right flex items-center justify-end">Actions</div>
+            <div className="flex items-center">Actions</div>
           </div>
 
           <div className="flex flex-col">
@@ -648,6 +656,7 @@ export default function JobTable({ jobs, onCreateJob, onUpdateJob, onDeleteJob }
                 <JobRow
                   key={job._id ?? `${job.companyName}-${job.applicationDate}`}
                   job={job}
+                  userEmail={userEmail}
                   deletingJobId={deletingJobId}
                   confirmingDeleteId={confirmingDeleteId}
                   editingJobId={editingJobId}

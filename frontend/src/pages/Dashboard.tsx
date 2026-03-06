@@ -13,6 +13,7 @@ import type {
   JobApplicationsResponse,
   SyncResponse,
 } from "../types/api";
+import { useAuth } from "../context/AuthContext";
 
 function DashboardSkeleton() {
   return (
@@ -81,6 +82,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const userEmail = useAuth().user?.email ?? "";
 
   // Auto-dismiss notices after 5 seconds
   useEffect(() => {
@@ -198,6 +200,7 @@ export default function Dashboard() {
           <div className="flex flex-col gap-4">
             <h2 className="text-xs font-mono uppercase tracking-widest text-muted">Recent Activity</h2>
             <JobTable
+              userEmail={userEmail}
               jobs={jobs}
               onCreateJob={handleCreateJob}
               onUpdateJob={handleUpdateJob}
