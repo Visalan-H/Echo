@@ -1,7 +1,7 @@
-const User = require('../models/User');
+const User = require('../models/User-model');
 const { generateToken } = require('../services/jwt');
-const { generateRandomString, encrypt } = require('../services/crypto');
-const { generateAuthUrl, exchangeCodeForTokens, getUserProfile } = require('../services/gmail');
+const { generateRandomString, encrypt } = require('../services/crypto-service');
+const { generateAuthUrl, exchangeCodeForTokens, getUserProfile } = require('../services/gmail-service');
 const { setStateCookie, clearStateCookie, setJwtCookie, clearJwtCookie } = require('../utils/cookie');
 
 function googleAuthUrl(req, res) {
@@ -11,6 +11,7 @@ function googleAuthUrl(req, res) {
 }
 
 async function googleAuthCallback(req, res) {
+    // DB is already connected by the server-level connectDB middleware.
     const { code, state, error } = req.query;
 
     if (error) {
@@ -74,6 +75,7 @@ async function getCurrentUser(req, res) {
             email: user.email,
             name: user.name,
             avatarUrl: user.avatarUrl,
+            emailSyncErrorMessage: user.emailSyncErrorMessage || null,
         });
     } catch (err) {
         res.status(401).json({ error: 'Invalid token' });

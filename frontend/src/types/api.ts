@@ -5,6 +5,7 @@ export type UserProfile = {
   email: string;
   name?: string;
   avatarUrl?: string;
+  emailSyncErrorMessage?: string | null;
 };
 
 export type JobApplication = {
@@ -23,6 +24,7 @@ export type JobApplicationMutationPayload = {
   jobRole: string;
   status: JobStatus;
   notes?: string;
+  applicationDate?: string;
 };
 
 export type JobApplicationMutationResponse = {

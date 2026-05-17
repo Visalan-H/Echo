@@ -7,7 +7,7 @@ type ApiErrorBody = {
 };
 
 const rawBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
-const baseURL = rawBaseUrl.endsWith("/") ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
+export const baseURL = rawBaseUrl.endsWith("/") ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
 
 const api = axios.create({
   baseURL,

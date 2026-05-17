@@ -1,9 +1,13 @@
 const JobApplication = require('../models/JobApplication-model');
 
-// Controller functions for managing job applications (create, read, update, delete)
+// Escape user input before using it as a MongoDB $regex to prevent ReDoS attacks.
+function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 async function createJobApplication(req, res) {
     try {
-        const { companyName, jobRole, status, notes } = req.validatedBody;
+        const { companyName, jobRole, status, notes, applicationDate } = req.validatedBody;
 
         const jobApplication = await JobApplication.create({
             userId: req.user._id,
@@ -11,12 +15,13 @@ async function createJobApplication(req, res) {
             jobRole,
             status,
             notes,
+            ...(applicationDate && { applicationDate: new Date(applicationDate) }),
         });
 
         return res.status(201).json({
             success: true,
             message: 'Job application created successfully',
-            data: jobApplication
+            data: jobApplication,
         });
     } catch (error) {
         console.error('Create job application error:', error);
@@ -28,14 +33,14 @@ async function getJobApplications(req, res) {
     try {
         const { status, company } = req.query;
 
-        let query = { userId: req.user._id };
+        const query = { userId: req.user._id };
 
         if (status) {
             query.status = status;
         }
 
         if (company) {
-            query.companyName = { $regex: company, $options: 'i' };
+            query.companyName = { $regex: escapeRegex(company), $options: 'i' };
         }
 
         const applications = await JobApplication.find(query).sort({ applicationDate: -1 });
@@ -43,13 +48,13 @@ async function getJobApplications(req, res) {
         return res.json({
             success: true,
             message: 'Job applications fetched successfully',
-            data: applications
+            data: applications,
         });
     } catch (error) {
         console.error('Get job applications error:', error);
-        return res.status(500).json({ 
+        return res.status(500).json({
             success: false,
-            error: 'Failed to fetch job applications' 
+            error: 'Failed to fetch job applications',
         });
     }
 }
@@ -69,19 +74,23 @@ async function updateJobApplication(req, res) {
             return res.status(403).json({ error: 'Unauthorized' });
         }
 
+        if (updates.applicationDate) {
+            updates.applicationDate = new Date(updates.applicationDate);
+        }
+
         Object.assign(jobApplication, updates);
         await jobApplication.save();
 
         return res.json({
             success: true,
             message: 'Job application updated successfully',
-            data: jobApplication
+            data: jobApplication,
         });
     } catch (error) {
         console.error('Update job application error:', error);
-         return res.status(500).json({ 
+        return res.status(500).json({
             success: false,
-            error: 'Failed to update job application' 
+            error: 'Failed to update job application',
         });
     }
 }
@@ -104,13 +113,13 @@ async function deleteJobApplication(req, res) {
 
         return res.json({
             success: true,
-            message: 'Job application deleted successfully' 
+            message: 'Job application deleted successfully',
         });
     } catch (error) {
         console.error('Delete job application error:', error);
-        return res.status(500).json({ 
-            success: false, 
-            error: 'Failed to delete job application' 
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to delete job application',
         });
     }
 }

@@ -9,7 +9,6 @@ const {
     deleteJobApplication,
 } = require('../controllers/jobApplication-controller');
 
-// Routes for managing job applications (CRUD operations)
 router.post('/job-applications', authMiddleware, validate(jobApplicationSchema), createJobApplication);
 router.get('/job-applications', authMiddleware, getJobApplications);
 router.put('/job-applications/:id', authMiddleware, validate(jobApplicationUpdateSchema), updateJobApplication);

@@ -1,18 +1,22 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+// API key is checked lazily at call time, not at module load.
+// This prevents a crash if the file is imported but GEMINI_API_KEY is not set.
+let genAI = null;
 
-if (!GEMINI_API_KEY) {
-    throw new Error('GEMINI_API_KEY must be set in environment variables');
+function getClient() {
+    if (!genAI) {
+        if (!process.env.GEMINI_API_KEY) {
+            throw new Error('GEMINI_API_KEY must be set in environment variables');
+        }
+        genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    }
+    return genAI;
 }
 
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-
-// Function to call Gemini API to parse email content and extract job application info
 async function parseEmailWithGemini(emailContent) {
     try {
-
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const model = getClient().getGenerativeModel({ model: 'gemini-2.5-flash' });
 
         const prompt = `Analyze this email and extract job application information. Return ONLY a valid JSON object with this exact structure (no markdown, no extra text):
 
@@ -30,9 +34,8 @@ async function parseEmailWithGemini(emailContent) {
 
         const result = await model.generateContent(prompt);
         let responseText = result.response.text();
-        responseText = responseText.trim().replace(/```json\s*/g, '').replace(/```/g, ''); // Remove markdown code block if present
+        responseText = responseText.trim().replace(/```json\s*/g, '').replace(/```/g, '');
 
-        // Parse the JSON response
         const parsed = JSON.parse(responseText);
 
         return {
@@ -42,7 +45,6 @@ async function parseEmailWithGemini(emailContent) {
             status: parsed.status || 'Applied',
             confidence: parsed.confidence || 0,
         };
-
     } catch (error) {
         console.error('Gemini API error:', error.message);
         return {

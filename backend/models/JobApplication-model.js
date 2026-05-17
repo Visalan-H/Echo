@@ -12,4 +12,8 @@ const jobApplicationSchema = new mongoose.Schema({
     confidence: { type: Number, min: 1, max: 10 },
 }, { timestamps: true });
 
+// Compound index: speeds up the upsert filter in syncEmails and prevents
+// duplicate entries if two syncs run concurrently for the same user+email.
+jobApplicationSchema.index({ userId: 1, emailId: 1 }, { unique: true, sparse: true });
+
 module.exports = mongoose.model('JobApplication', jobApplicationSchema);

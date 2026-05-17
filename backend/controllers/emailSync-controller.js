@@ -1,63 +1,94 @@
-const User = require('../models/User');
+const User = require('../models/User-model');
 const JobApplication = require('../models/JobApplication-model');
-const { getNewEmails, getEmailHeader } = require('../services/gmail');
+const { getNewEmails, getEmailHeader } = require('../services/gmail-service');
 const { parseEmailsWithGroq } = require('../services/groq-service');
 
-// Sync emails for that user, extract job application info from groq, and create/update job applications in the database
 async function syncEmails(req, res) {
+    const userId = req.user._id;
+
+    // Declared outside try so the catch block can access it to save the error message
+    let user;
+
     try {
+        user = await User.findById(userId);
 
-        const userId = req.user._id;
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
 
-        const user = await User.findById(userId);
+        // Enforce minimum sync interval of 60s to prevent quota abuse
+        if (user.lastSyncAt) {
+            const secondsSinceLastSync = (Date.now() - new Date(user.lastSyncAt).getTime()) / 1000;
+            if (secondsSinceLastSync < 60) {
+                return res.status(429).json({
+                    error: `Please wait ${Math.ceil(60 - secondsSinceLastSync)}s before syncing again.`,
+                });
+            }
+        }
 
-        // Get the new emails and parse it using groq.
         const newEmails = await getNewEmails(user);
+
         if (newEmails.length === 0) {
+            user.lastSyncAt = new Date();
+            user.emailSyncErrorMessage = null;
+            await user.save();
             return res.json({ message: 'No new emails to sync' });
         }
 
         const emails = newEmails.map(getEmailHeader);
-        console.log("New emails fetched: ", emails);
+        console.log(`[Sync] Fetched ${emails.length} new emails for user ${userId}`);
 
         const parsed = await parseEmailsWithGroq(emails);
-        console.log("Returned value from the groq service:::: ", parsed);
+        const jobEmails = parsed.filter(email => email.isJobRelated);
 
-        const jobEmails = parsed.filter(email => email.isJobRelated); // we can use confidence score here to filter out low confidence ones if we want
+        user.lastSyncAt = new Date();
+        user.emailSyncErrorMessage = null;
 
         if (jobEmails.length === 0) {
+            await user.save();
             return res.json({ message: 'No job-related emails found in the new emails' });
         }
 
-        // For each job-related email, upsert a job application in the database
         const jobApplications = await Promise.all(
             jobEmails.map(email =>
                 JobApplication.findOneAndUpdate(
-                    { userId, emailId: email.id },       
+                    { userId, emailId: email.id },
                     {
-                        userId,
-                        emailId: email.id,
-                        companyName: email.companyName || 'Unknown Company',
-                        jobRole: email.jobRole || 'Unknown Role',
-                        status: email.status || 'Unknown',
-                        confidence: email.confidence,
+                        $set: {
+                            companyName: email.companyName || 'Unknown Company',
+                            jobRole: email.jobRole || 'Unknown Role',
+                            status: email.status || 'Applied',
+                            confidence: email.confidence,
+                        },
+                        $setOnInsert: {
+                            userId,
+                            emailId: email.id,
+                        },
                     },
-                    { upsert: true, returnDocument: 'after' }         // upsert - create if doesn't exist
+                    { upsert: true, returnDocument: 'after' }
                 )
             )
         );
 
-        // update the last sync time for the user
-        user.lastSyncAt = new Date();
         await user.save();
 
         return res.json({
-            message: 'Email sync completed',
-            jobApplications: jobApplications
+            message: `Sync complete — ${jobApplications.length} application(s) updated`,
+            jobApplications,
         });
     } catch (error) {
-        console.error('Sync emails error:', error);
-        return res.status(500).json({ error: 'Failed to sync emails' });
+        console.error('Sync emails error:', error.message);
+
+        try {
+            if (user) {
+                user.emailSyncErrorMessage = error.message;
+                await user.save();
+            }
+        } catch (saveErr) {
+            console.error('Failed to save sync error message:', saveErr.message);
+        }
+
+        return res.status(500).json({ error: 'Failed to sync emails. Please try again.' });
     }
 }
 

@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { googleAuthUrl, googleAuthCallback, logoutUser, getCurrentUser } = require('../controllers/auth');
+const { googleAuthUrl, googleAuthCallback, logoutUser, getCurrentUser } = require('../controllers/auth-controller');
 const authMiddleware = require('../middleware/auth');
 
 router.get('/google/url', googleAuthUrl);

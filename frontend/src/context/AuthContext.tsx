@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import axios from "axios";
-import api, { getApiErrorMessage } from "../utils/api";
+import api, { baseURL, getApiErrorMessage } from "../utils/api";
 import type { UserProfile } from "../types/api";
 
 type AuthStatus = "loading" | "authenticated" | "unauthenticated";
@@ -57,9 +57,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     void refreshUser();
   }, [refreshUser]);
 
+  // Uses baseURL from api.ts — single source of truth, no duplication
   const loginWithGoogle = useCallback(() => {
-    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
-    window.location.assign(`${apiBaseUrl}/api/auth/google/url`);
+    window.location.assign(`${baseURL}/api/auth/google/url`);
   }, []);
 
   const logout = useCallback(async () => {

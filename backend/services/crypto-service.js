@@ -12,6 +12,10 @@ if (!ENCRYPTION_SALT) {
     throw new Error('ENCRYPTION_SALT must be set in environment variables.');
 }
 
+// Derive the key once at module load and cache it.
+// scryptSync is intentionally slow (it's a KDF) — calling it per-request was wasteful.
+const DERIVED_KEY = crypto.scryptSync(ENCRYPTION_KEY, ENCRYPTION_SALT, 32);
+
 const generateRandomString = (length = 16) => {
     return crypto.randomBytes(length).toString('hex');
 };
@@ -20,8 +24,7 @@ const encrypt = (text) => {
     if (!text) return text;
 
     const iv = crypto.randomBytes(16);
-    const key = crypto.scryptSync(ENCRYPTION_KEY, ENCRYPTION_SALT, 32);
-    const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+    const cipher = crypto.createCipheriv(ALGORITHM, DERIVED_KEY, iv);
 
     let encrypted = cipher.update(text, 'utf8', 'hex');
     encrypted += cipher.final('hex');
@@ -38,8 +41,7 @@ const decrypt = (encryptedText) => {
 
         const iv = Buffer.from(parts[0], 'hex');
         const encrypted = parts[1];
-        const key = crypto.scryptSync(ENCRYPTION_KEY, ENCRYPTION_SALT, 32);
-        const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+        const decipher = crypto.createDecipheriv(ALGORITHM, DERIVED_KEY, iv);
 
         let decrypted = decipher.update(encrypted, 'hex', 'utf8');
         decrypted += decipher.final('utf8');

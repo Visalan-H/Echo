@@ -1,11 +1,10 @@
 const { google } = require('googleapis');
-const { decrypt } = require('./crypto');
+const { decrypt, encrypt } = require('./crypto-service');
 
 if (!process.env.GMAIL_CLIENT_ID || !process.env.GMAIL_CLIENT_SECRET || !process.env.GMAIL_REDIRECT_URI) {
     throw new Error('GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, and GMAIL_REDIRECT_URI must be set in environment variables');
 }
 
-// global OAuth2 client instance to be used for generating auth URLs and exchanging codes for tokens
 const oAuth2Client = new google.auth.OAuth2(
     process.env.GMAIL_CLIENT_ID,
     process.env.GMAIL_CLIENT_SECRET,
@@ -37,7 +36,9 @@ async function getUserProfile(accessToken) {
     return data;
 }
 
-// We need to create a new OAuth2 client for each user to set their specific tokens 
+// Creates a per-user OAuth2 client with a token refresh listener.
+// Google auto-refreshes the access token after ~1hr. Without the 'tokens'
+// listener, the new token is never saved back to DB and future syncs break.
 function getAuthClientForUser(user) {
     const client = new google.auth.OAuth2(
         process.env.GMAIL_CLIENT_ID,
@@ -50,6 +51,21 @@ function getAuthClientForUser(user) {
         refresh_token: decrypt(user.refreshToken),
     });
 
+    client.on('tokens', async (tokens) => {
+        try {
+            if (tokens.access_token) {
+                user.accessToken = encrypt(tokens.access_token);
+            }
+            if (tokens.refresh_token) {
+                user.refreshToken = encrypt(tokens.refresh_token);
+            }
+            await user.save();
+            console.log('[Gmail] Refreshed tokens saved for user:', user._id);
+        } catch (err) {
+            console.error('[Gmail] Failed to save refreshed tokens:', err.message);
+        }
+    });
+
     return client;
 }
 
@@ -57,10 +73,9 @@ async function getNewEmails(user) {
     const auth = getAuthClientForUser(user);
     const gmail = google.gmail({ version: 'v1', auth });
 
-
     const since = user.lastSyncAt || user.createdAt;
     const afterDate = Math.floor(new Date(since).getTime() / 1000);
-    
+
     const res = await gmail.users.messages.list({
         userId: 'me',
         q: `after:${afterDate}`,
@@ -84,7 +99,6 @@ async function getNewEmails(user) {
     return emails;
 }
 
-// Extract relevant headers and body content from the email
 function getEmailHeader(email) {
     try {
         const headers = email.payload.headers;
@@ -94,13 +108,11 @@ function getEmailHeader(email) {
 
         let body = '';
         if (email.payload.parts) {
-            // Email has multiple parts, find text/plain or text/html
             const textPart = email.payload.parts.find(part => part.mimeType === 'text/plain');
             if (textPart && textPart.body.data) {
                 body = Buffer.from(textPart.body.data, 'base64').toString('utf-8');
             }
         } else if (email.payload.body && email.payload.body.data) {
-            // Email is simple text
             body = Buffer.from(email.payload.body.data, 'base64').toString('utf-8');
         }
 
@@ -109,17 +121,11 @@ function getEmailHeader(email) {
             subject,
             from,
             date,
-            body: body.substring(0, 800), // Limit to 800 chars for API
+            body: body.substring(0, 800),
         };
     } catch (error) {
         console.error('Error extracting email header:', error.message);
-        return {
-            id: email.id,
-            subject: '',
-            from: '',
-            date: '',
-            body: '',
-        };
+        return { id: email.id, subject: '', from: '', date: '', body: '' };
     }
 }
 

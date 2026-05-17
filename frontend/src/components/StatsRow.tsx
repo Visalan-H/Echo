@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { JobApplication, JobStatus } from "../types/api";
 
 type CountUpProps = {
@@ -11,8 +11,17 @@ type StatsRowProps = {
 
 function CountUp({ target }: CountUpProps) {
   const [count, setCount] = useState(0);
+  // Only animate on first mount — not on every re-render when jobs change.
+  // Re-animating from 0 after every CRUD operation is distracting.
+  const hasAnimated = useRef(false);
 
   useEffect(() => {
+    if (hasAnimated.current) {
+      setCount(target);
+      return;
+    }
+
+    hasAnimated.current = true;
     let startTime: number | null = null;
     let frameId = 0;
     const duration = 800;
@@ -20,9 +29,7 @@ function CountUp({ target }: CountUpProps) {
     const step = (timestamp: number) => {
       if (!startTime) startTime = timestamp;
       const progress = Math.min((timestamp - startTime) / duration, 1);
-
       const easeOut = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
-
       setCount(Math.floor(easeOut * target));
 
       if (progress < 1) {
@@ -33,10 +40,7 @@ function CountUp({ target }: CountUpProps) {
     };
 
     frameId = requestAnimationFrame(step);
-
-    return () => {
-      cancelAnimationFrame(frameId);
-    };
+    return () => cancelAnimationFrame(frameId);
   }, [target]);
 
   return <span>{count}</span>;
@@ -57,7 +61,7 @@ export default function StatsRow({ data }: StatsRowProps) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
       {stats.map((stat) => (
-        <div 
+        <div
           key={stat.label}
           className="p-5 border border-border bg-surface flex flex-col"
         >
