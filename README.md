@@ -14,7 +14,7 @@ Echo removes the manual work by scanning for job-related emails, parsing them, a
 
 ## Tech Stack
 
-Echo is built primarily with the MERN stack (MongoDB, Express, React, Node) and leverages Google's Gemini AI for intelligent email parsing.
+Echo is built primarily with the MERN stack (MongoDB, Express, React, Node) and leverages Groq API for intelligent email parsing.
 
 | Component           | Technology                  | Description                                                            |
 | ------------------- | --------------------------- | ---------------------------------------------------------------------- |
@@ -23,7 +23,7 @@ Echo is built primarily with the MERN stack (MongoDB, Express, React, Node) and 
 | **Database**        | MongoDB (Atlas)             | Flexible document store for users and parsed job data                  |
 | **Authentication**  | Custom OAuth + JWT          | Secure cookie-based login via Google OAuth 2.0                         |
 | **Email Ingestion** | Gmail API                   | Read-only access to user emails                                        |
-| **Email Parsing**   | Google Gemini 1.5 Flash     | AI-driven extraction of structured company/role/status data            |
+| **Email Parsing**   | Groq API                    | AI-driven extraction of structured company/role/status data            |
 | **Hosting**         | Vercel (FE & BE)            | Serverless functions for the backend, static edge hosting for frontend |
 | **Scheduling**      | cron-job.org                | Triggers background synchronization periodically                       |
 
@@ -41,7 +41,7 @@ A scheduled cron job calls an internal Vercel API endpoint. This endpoint iterat
 
 ### 3. AI-Powered Parsing
 
-Because raw emails are incredibly diverse, simple keyword matching fails. We extract the plain text of new emails and feed it to **Gemini 1.5 Flash**. The AI is prompted to return structured JSON containing:
+Because raw emails are incredibly diverse, simple keyword matching fails. We extract the plain text of new emails and feed it to **Groq API**. The AI is prompted to return structured JSON containing:
 
 - Is this email job-related?
 - Company Name
